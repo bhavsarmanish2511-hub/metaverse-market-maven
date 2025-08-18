@@ -3,6 +3,7 @@ import { CyberCard, CyberCardContent, CyberCardHeader, CyberCardTitle } from '@/
 import { CyberButton } from '@/components/ui/cyber-button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { ChatbotAssistant } from './chatbot-assistant';
 import { 
   CheckCircle, 
   Minus, 
@@ -302,6 +303,9 @@ export const CartFinalization: React.FC<CartFinalizationProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* Chatbot Assistant - Fixed Bottom Left */}
+      <ChatbotAssistant />
     </div>
   );
 };

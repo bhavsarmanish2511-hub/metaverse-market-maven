@@ -4,6 +4,7 @@ import { CyberButton } from '@/components/ui/cyber-button';
 import { Badge } from '@/components/ui/badge';
 import { AIAssistant } from './ai-assistant';
 import { SmartCart, CartItem } from './smart-cart';
+import { ChatbotAssistant } from './chatbot-assistant';
 import { 
   ShoppingBag, 
   TrendingUp, 
@@ -49,9 +50,15 @@ export const GroceryDashboard: React.FC<DashboardProps> = ({
   ]);
 
   const recommendations = [
-    { id: 'r1', name: 'Quinoa Blend', price: 4.99, category: 'Grains', reason: 'Complements your protein choices' },
-    { id: 'r2', name: 'Organic Spinach', price: 3.49, category: 'Produce', reason: 'High in nutrients you need' },
-    { id: 'r3', name: 'Greek Yogurt', price: 5.99, category: 'Dairy', reason: 'Based on your health goals' },
+    { id: 'r1', name: 'Quinoa Blend', price: 4.99, category: 'Grains', reason: 'Complements your protein choices', isChildFriendly: false },
+    { id: 'r2', name: 'Organic Spinach', price: 3.49, category: 'Produce', reason: 'High in nutrients you need', isChildFriendly: true },
+    { id: 'r3', name: 'Greek Yogurt', price: 5.99, category: 'Dairy', reason: 'Based on your health goals', isChildFriendly: true },
+  ];
+
+  const childNutritionRecommendations = [
+    { id: 'c1', name: 'Fortified Cereal', price: 6.99, category: 'Baby Food', reason: 'Iron & vitamins for 5-year-old', isChildFriendly: true },
+    { id: 'c2', name: 'Whole Milk', price: 4.49, category: 'Dairy', reason: 'Essential calcium for growing bones', isChildFriendly: true },
+    { id: 'c3', name: 'Organic Apple Sauce', price: 3.99, category: 'Baby Food', reason: 'Natural fiber & vitamins', isChildFriendly: true },
   ];
 
   const purchaseHistory = [
@@ -120,15 +127,10 @@ export const GroceryDashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
 
-        {/* Main Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - AI Assistant */}
-          <div className="lg:col-span-1">
-            <AIAssistant onRecommendation={(product) => console.log('Recommended:', product)} />
-          </div>
-
-          {/* Middle Column - Smart Cart */}
-          <div className="lg:col-span-1">
+        {/* Main Dashboard Layout - Smart Cart Left, Content Right */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-300px)]">
+          {/* Left Column - Smart Cart 3.0 (Full Height) */}
+          <div className="lg:col-span-1 h-full">
             <SmartCart
               items={cartItems}
               onUpdateQuantity={updateCartQuantity}
@@ -137,69 +139,112 @@ export const GroceryDashboard: React.FC<DashboardProps> = ({
             />
           </div>
 
-          {/* Right Column - Recommendations & Analytics */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* AI Recommendations */}
-            <CyberCard variant="neon">
-              <CyberCardHeader>
-                <CyberCardTitle className="flex items-center gap-2">
-                  <Star className="w-5 h-5 text-accent" />
-                  AI Recommendations
-                </CyberCardTitle>
-              </CyberCardHeader>
-              <CyberCardContent className="space-y-3">
-                {recommendations.map((rec) => (
-                  <div
-                    key={rec.id}
-                    className="glass p-3 rounded-lg border border-accent/20 hover:border-accent/40 transition-all"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h4 className="font-semibold text-foreground">{rec.name}</h4>
-                        <p className="text-xs text-accent">{rec.category}</p>
-                      </div>
-                      <span className="font-bold text-primary">${rec.price}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-3">{rec.reason}</p>
-                    <CyberButton
-                      variant="accent"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => addRecommendation(rec)}
+          {/* Right Columns - AI Recommendations & Analytics */}
+          <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+            {/* AI Recommendations with Child Nutrition */}
+            <div className="space-y-6">
+              {/* AI Recommendations */}
+              <CyberCard variant="neon">
+                <CyberCardHeader>
+                  <CyberCardTitle className="flex items-center gap-2">
+                    <Star className="w-5 h-5 text-accent" />
+                    AI Recommendations
+                  </CyberCardTitle>
+                </CyberCardHeader>
+                <CyberCardContent className="space-y-3">
+                  {recommendations.map((rec) => (
+                    <div
+                      key={rec.id}
+                      className="glass p-3 rounded-lg border border-accent/20 hover:border-accent/40 transition-all"
                     >
-                      <Plus className="w-3 h-3 mr-1" />
-                      Add to Cart
-                    </CyberButton>
-                  </div>
-                ))}
-              </CyberCardContent>
-            </CyberCard>
-
-            {/* Purchase History */}
-            <CyberCard variant="glass">
-              <CyberCardHeader>
-                <CyberCardTitle className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-primary" />
-                  Purchase Analytics
-                </CyberCardTitle>
-              </CyberCardHeader>
-              <CyberCardContent className="space-y-3">
-                {purchaseHistory.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex justify-between items-center p-3 bg-glass/20 rounded-lg border border-primary/10"
-                  >
-                    <div>
-                      <p className="font-medium text-foreground">{item.item}</p>
-                      <p className="text-xs text-muted-foreground">{item.lastPurchase}</p>
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-semibold text-foreground">{rec.name}</h4>
+                          <p className="text-xs text-accent">{rec.category}</p>
+                        </div>
+                        <span className="font-bold text-primary">${rec.price}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-3">{rec.reason}</p>
+                      <CyberButton
+                        variant="accent"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => addRecommendation(rec)}
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Add to Cart
+                      </CyberButton>
                     </div>
-                    <Badge variant="outline" className="text-primary border-primary/30">
-                      {item.frequency}
-                    </Badge>
-                  </div>
-                ))}
-              </CyberCardContent>
-            </CyberCard>
+                  ))}
+                </CyberCardContent>
+              </CyberCard>
+
+              {/* Child Nutrition Recommendations */}
+              <CyberCard variant="hologram">
+                <CyberCardHeader>
+                  <CyberCardTitle className="flex items-center gap-2">
+                    <span className="text-lg">👶</span>
+                    Child Nutrition (5-year-old)
+                  </CyberCardTitle>
+                </CyberCardHeader>
+                <CyberCardContent className="space-y-3">
+                  {childNutritionRecommendations.map((rec) => (
+                    <div
+                      key={rec.id}
+                      className="glass p-3 rounded-lg border border-primary/20 hover:border-primary/40 transition-all"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-semibold text-foreground">{rec.name}</h4>
+                          <p className="text-xs text-primary">{rec.category}</p>
+                        </div>
+                        <span className="font-bold text-accent">${rec.price}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-3">{rec.reason}</p>
+                      <CyberButton
+                        variant="cyber"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => addRecommendation(rec)}
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Add for Child
+                      </CyberButton>
+                    </div>
+                  ))}
+                </CyberCardContent>
+              </CyberCard>
+            </div>
+
+            {/* Analytics & Purchase History */}
+            <div className="space-y-6">
+
+              {/* Purchase History */}
+              <CyberCard variant="glass">
+                <CyberCardHeader>
+                  <CyberCardTitle className="flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-primary" />
+                    Purchase Analytics
+                  </CyberCardTitle>
+                </CyberCardHeader>
+                <CyberCardContent className="space-y-3">
+                  {purchaseHistory.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center p-3 bg-glass/20 rounded-lg border border-primary/10"
+                    >
+                      <div>
+                        <p className="font-medium text-foreground">{item.item}</p>
+                        <p className="text-xs text-muted-foreground">{item.lastPurchase}</p>
+                      </div>
+                      <Badge variant="outline" className="text-primary border-primary/30">
+                        {item.frequency}
+                      </Badge>
+                    </div>
+                  ))}
+                </CyberCardContent>
+              </CyberCard>
+            </div>
           </div>
         </div>
 
@@ -225,6 +270,9 @@ export const GroceryDashboard: React.FC<DashboardProps> = ({
           </CyberButton>
         </div>
       </div>
+      
+      {/* Chatbot Assistant - Fixed Bottom Left */}
+      <ChatbotAssistant />
     </div>
   );
 };

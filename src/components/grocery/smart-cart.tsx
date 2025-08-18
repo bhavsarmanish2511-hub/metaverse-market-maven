@@ -48,25 +48,29 @@ export const SmartCart: React.FC<SmartCartProps> = ({
   };
 
   return (
-    <CyberCard variant="glass" className="h-full flex flex-col">
-      <CyberCardHeader className="pb-4">
+    <CyberCard variant="glass" className="h-full flex flex-col min-h-[600px]">
+      <CyberCardHeader className="pb-4 bg-gradient-cyber/10 rounded-t-lg">
         <div className="flex items-center gap-3">
           <div className="relative">
             <img 
               src={smartCartImage} 
-              alt="Smart Cart" 
-              className="w-16 h-16 rounded-lg object-cover ring-2 ring-primary/50"
+              alt="Smart Cart 3.0" 
+              className="w-20 h-20 rounded-lg object-cover ring-2 ring-primary/50 shadow-neon"
             />
-            <div className="absolute -top-2 -right-2 bg-accent text-accent-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+            <div className="absolute -top-2 -right-2 bg-accent text-accent-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shadow-glow">
               {totalItems}
             </div>
           </div>
           <div className="flex-1">
-            <CyberCardTitle className="text-xl flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5" />
+            <CyberCardTitle className="text-2xl flex items-center gap-2 holographic">
+              <ShoppingCart className="w-6 h-6" />
               Smart Cart 3.0
             </CyberCardTitle>
-            <p className="text-accent text-sm">AI-Enhanced Shopping Experience</p>
+            <p className="text-accent text-sm font-medium">AI-Enhanced Shopping Experience</p>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
+              <span className="text-xs text-muted-foreground">Live Updates Active</span>
+            </div>
           </div>
         </div>
       </CyberCardHeader>
