@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Fingerprint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -8,15 +8,17 @@ interface FingerprintAuthModalProps {
   onClose: () => void;
   onSuccess: () => void;
   roleName?: string;
+  triggerId?: string;
 }
 
-export function FingerprintAuthModal({ open, onClose, onSuccess, roleName = 'IRC Leader' }: FingerprintAuthModalProps) {
+export function FingerprintAuthModal({ open: externalOpen, onClose, onSuccess, roleName = 'IRC Leader', triggerId }: FingerprintAuthModalProps) {
+  const [isOpen, setIsOpen] = useState(externalOpen);
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
 
   useEffect(() => {
-    if (open) {
+    if (isOpen) {
       // Auto-start scanning when modal opens
       setTimeout(() => handleScan(), 500);
     } else {
@@ -25,7 +27,7 @@ export function FingerprintAuthModal({ open, onClose, onSuccess, roleName = 'IRC
       setScanProgress(0);
       setScanStatus('idle');
     }
-  }, [open]);
+  }, [isOpen]);
 
   const handleScan = async () => {
     setIsScanning(true);
@@ -46,11 +48,24 @@ export function FingerprintAuthModal({ open, onClose, onSuccess, roleName = 'IRC
 
     // Navigate after success animation
     await new Promise(resolve => setTimeout(resolve, 800));
+    setIsOpen(false);
     onSuccess();
   };
 
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (!open) {
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      {triggerId && (
+        <DialogTrigger asChild>
+          <button id={triggerId} className="hidden" />
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md border-login-glow/30 bg-login-bg/95 backdrop-blur-xl">
         <div className="flex flex-col items-center justify-center py-8 space-y-6">
           {/* Header */}
@@ -154,7 +169,7 @@ export function FingerprintAuthModal({ open, onClose, onSuccess, roleName = 'IRC
           {!isScanning && scanStatus !== 'success' && (
             <Button
               variant="outline"
-              onClick={onClose}
+              onClick={() => handleOpenChange(false)}
               className="border-login-glow/30 text-login-highlight hover:bg-login-glow/10 hover:text-login-glow"
             >
               Cancel
