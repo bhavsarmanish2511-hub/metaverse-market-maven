@@ -19,7 +19,7 @@ const actionIcons = {
   script: Terminal,
   default: Zap,
 };
-
+//comment added
 export default memo(({ data, selected }: NodeProps) => {
   const Icon = actionIcons[data.actionType as keyof typeof actionIcons] || actionIcons.default;
 
