@@ -1,4 +1,4 @@
-import { Shield, Network, Home, Activity, AlertTriangle, Database, FileText, Book, Wrench, BarChart3, Settings, LogOut, Workflow, Zap, Radio, User, ScanFace, Target, Crosshair, Bug, KeyRound, Scan, Crown } from "lucide-react";
+import { Shield, Network, Home, Activity, AlertTriangle, Database, FileText, Book, Wrench, BarChart3, Settings, LogOut, Workflow, Zap, Radio, User, ScanFace, Target, Crosshair, Bug, KeyRound, Scan, Crown, Eye, Server } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +17,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+
+// Integrated Analyst items - SOC/NOC unified view
+const analystItems = [
+  { title: "Unified Dashboard", url: "/analyst", icon: Eye },
+  { title: "SOC Overview", url: "/soc-overview", icon: Shield },
+  { title: "NOC Overview", url: "/noc-overview", icon: Network },
+];
 
 const socItems = [
   { title: "Logs", url: "/soc/logs", icon: Database },
@@ -73,6 +80,7 @@ export function AppSidebar() {
   };
 
   // Determine which sections to show based on role
+  const showAnalystDashboard = currentRole === 'analyst' || currentRole === 'rcc_head';
   const showSOC = currentRole === 'analyst' || currentRole === 'irc_leader' || currentRole === 'rcc_head';
   const showNOC = currentRole === 'analyst' || currentRole === 'rcc_head';
   const showOffensive = currentRole === 'offensive_tester' || currentRole === 'rcc_head';
@@ -134,6 +142,34 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Integrated Analyst Dashboard */}
+        {showAnalystDashboard && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-primary">
+              <Eye className="h-4 w-4" />
+              {open && <span>Operations Center</span>}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {analystItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild disabled={isIRCLeaderMode}>
+                      <NavLink 
+                        to={item.url}
+                        className={`hover:bg-primary/10 hover:text-primary ${isIRCLeaderMode ? 'opacity-50 pointer-events-none' : ''}`}
+                        activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {open && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Admin Section - RCC Head Only */}
         {showAdmin && (
