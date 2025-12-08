@@ -71,7 +71,7 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const { signOut, user } = useAuth();
   const { isIRCLeaderMode, ircLeaderName, setIRCLeaderMode } = useIRCLeader();
-  const { currentRole } = useRole();
+  const { currentRole, isVerified } = useRole();
 
   const isActive = (path: string) => currentPath === path;
 
@@ -79,13 +79,13 @@ export function AppSidebar() {
     setIRCLeaderMode(false);
   };
 
-  // Determine which sections to show based on role
-  const showAnalystDashboard = currentRole === 'analyst' || currentRole === 'rcc_head';
-  const showSOC = currentRole === 'analyst' || currentRole === 'irc_leader' || currentRole === 'rcc_head';
-  const showNOC = currentRole === 'analyst' || currentRole === 'rcc_head';
-  const showOffensive = currentRole === 'offensive_tester' || currentRole === 'rcc_head';
-  const showIRC = currentRole === 'irc_leader' || currentRole === 'rcc_head';
-  const showAdmin = currentRole === 'rcc_head';
+  // Only show role-specific sections when verified
+  const showAnalystDashboard = isVerified && (currentRole === 'analyst' || currentRole === 'rcc_head');
+  const showSOC = isVerified && (currentRole === 'analyst' || currentRole === 'irc_leader' || currentRole === 'rcc_head');
+  const showNOC = isVerified && (currentRole === 'analyst' || currentRole === 'rcc_head');
+  const showOffensive = isVerified && (currentRole === 'offensive_tester' || currentRole === 'rcc_head');
+  const showIRC = isVerified && (currentRole === 'irc_leader' || currentRole === 'rcc_head');
+  const showAdmin = isVerified && currentRole === 'rcc_head';
 
   return (
     <Sidebar className="border-r border-border custom-scrollbar">
@@ -116,6 +116,23 @@ export function AppSidebar() {
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-error">{ircLeaderName}</p>
                   <Badge className="bg-error text-error-foreground text-xs">IRC Leader</Badge>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Verification Required Notice */}
+        {!isVerified && (
+          <div className="p-4 border-b border-warning/30 bg-warning/10">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center">
+                <Shield className="h-4 w-4 text-warning" />
+              </div>
+              {open && (
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-warning">Identity Not Verified</p>
+                  <p className="text-xs text-muted-foreground">Click "Verify ID" to access role features</p>
                 </div>
               )}
             </div>

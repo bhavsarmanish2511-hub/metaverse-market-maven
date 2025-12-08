@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useRole, UserRole } from '@/contexts/RoleContext';
-import { useToast } from '@/hooks/use-toast';
 
 interface RoleOption {
   id: UserRole;
@@ -17,7 +16,7 @@ interface RoleOption {
   description: string;
   icon: 'Shield' | 'Activity' | 'Target' | 'Crown';
 }
-//new comment added
+
 const roleOptions: RoleOption[] = [
   { id: 'rcc_head', name: 'Resilient Command Centre Head', description: 'Global admin access', icon: 'Crown' },
   { id: 'analyst', name: 'Integrated Operations Analyst', description: 'SOC/NOC unified view', icon: 'Activity' },
@@ -33,54 +32,61 @@ const iconMap = {
 };
 
 export function RoleSwitcher() {
-  const { currentRole, setCurrentRole, roleName } = useRole();
-  const { toast } = useToast();
-  const selectedRoleData = roleOptions.find(r => r.id === currentRole);
-  const SelectedIcon = iconMap[selectedRoleData?.icon || 'Activity'];
+  const { pendingRole, setPendingRole, isVerified, currentRole } = useRole();
+  
+  // Show the verified role if verified, otherwise show pending selection
+  const displayRole = isVerified ? currentRole : pendingRole;
+  const selectedRoleData = roleOptions.find(r => r.id === displayRole);
+  const SelectedIcon = iconMap[selectedRoleData?.icon || 'Crown'];
 
-  const handleRoleChange = (role: UserRole) => {
-    setCurrentRole(role);
-    const newRoleName = roleOptions.find(r => r.id === role)?.name;
-    toast({
-      title: "Role Switched",
-      description: `Now operating as ${newRoleName}`,
-    });
+  const handleRoleSelect = (role: UserRole) => {
+    setPendingRole(role);
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 min-w-[140px] justify-between border-primary/30 hover:border-primary">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className={cn(
+            "gap-2 min-w-[180px] justify-between border-primary/30 hover:border-primary",
+            isVerified && "border-success/50 bg-success/5"
+          )}
+        >
           <div className="flex items-center gap-2">
-            <SelectedIcon className="h-4 w-4 text-primary" />
-            <span className="hidden md:inline text-sm">{selectedRoleData?.name}</span>
+            <SelectedIcon className={cn("h-4 w-4", isVerified ? "text-success" : "text-primary")} />
+            <span className="hidden md:inline text-sm truncate max-w-[140px]">{selectedRoleData?.name}</span>
           </div>
-          <ChevronDown className="h-3 w-3 opacity-50" />
+          <ChevronDown className="h-3 w-3 opacity-50 flex-shrink-0" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[280px] bg-popover border-border">
+      <DropdownMenuContent align="end" className="w-[280px] bg-popover border-border z-50">
         {roleOptions.map((role, index) => {
           const Icon = iconMap[role.icon];
           const isRCCHead = role.id === 'rcc_head';
+          const isSelected = displayRole === role.id;
           return (
-            <>
+            <div key={role.id}>
               <DropdownMenuItem
-                key={role.id}
-                onClick={() => handleRoleChange(role.id)}
+                onClick={() => handleRoleSelect(role.id)}
                 className={cn(
                   "flex flex-col items-start gap-1 p-3 cursor-pointer",
-                  currentRole === role.id && "bg-primary/10",
+                  isSelected && "bg-primary/10",
                   isRCCHead && "border-l-2 border-warning"
                 )}
               >
                 <div className="flex items-center gap-2 w-full">
                   <Icon className={cn("h-4 w-4", isRCCHead ? "text-warning" : "text-primary")} />
                   <span className="font-medium">{role.name}</span>
+                  {isSelected && isVerified && (
+                    <span className="ml-auto text-xs text-success font-medium">Active</span>
+                  )}
                 </div>
                 <span className="text-xs text-muted-foreground pl-6">{role.description}</span>
               </DropdownMenuItem>
               {index === 0 && <DropdownMenuSeparator />}
-            </>
+            </div>
           );
         })}
       </DropdownMenuContent>
