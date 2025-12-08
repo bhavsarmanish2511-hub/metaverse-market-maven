@@ -39,7 +39,7 @@ import PenetrationTesting from "./pages/offensive/PenetrationTesting";
 import ExploitFramework from "./pages/offensive/ExploitFramework";
 import CredentialTesting from "./pages/offensive/CredentialTesting";
 import AdminConsole from "./pages/AdminConsole";
-
+import IntegratedAnalystDashboard from "./pages/IntegratedAnalystDashboard";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -56,6 +56,9 @@ const App = () => (
                 <Route path="/register" element={<Register />} />
                 <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                   <Route index element={<Dashboard />} />
+                  <Route path="analyst" element={<IntegratedAnalystDashboard />} />
+                  <Route path="soc-overview" element={<SocOverview />} />
+                  <Route path="noc-overview" element={<NocOverview />} />
                   <Route path="quantum" element={<QuantumSecurity />} />
                   <Route path="network-topology" element={<NetworkTopology />} />
                   <Route path="deepfake" element={<DeepfakeAnalysis />} />
