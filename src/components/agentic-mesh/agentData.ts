@@ -1,0 +1,403 @@
+import { Agent } from "./AgentNode";
+
+export const agentCatalog: Agent[] = [
+  // Orchestration & Governance
+  {
+    id: 'HELIOS',
+    name: 'HELIOS',
+    fullName: 'Master Decision & Coordination',
+    purpose: 'Master decision & coordination engine for SOC+NOC operations',
+    scope: 'Triage, plan, simulate, orchestrate SOC+NOC operations',
+    inputs: 'Alerts, telemetry, topology, TI, IAM risk',
+    outputs: 'Action plans, playbook selection, approval packages, post-incident learnings',
+    models: 'Ensemble policy engine + LLM planning + graph correlation',
+    autonomy: 'Tiered; high-impact gates require human sign-off',
+    integrations: 'All agents via bus/MCP',
+    kpis: 'MTTD/MTTR, false positives, % auto-resolved with approvals',
+    category: 'orchestration',
+    status: 'active',
+    connections: ['GATE', 'AMG', 'LGR', 'KBR', 'SEA', 'TIA', 'INC', 'XDR', 'QIG', 'DFA', 'MIM', 'RED', 'NPM', 'FDR', 'CTM', 'TAO', 'PMX', 'BUS', 'DTS', 'AIM']
+  },
+  {
+    id: 'GATE',
+    name: 'GATE',
+    fullName: 'Approval & Policy Governor',
+    purpose: 'Enforce human-in-the-loop for critical decisions',
+    scope: 'Enforce human-in-the-loop, watchlists, risk-based step-up MFA',
+    inputs: 'Action requests, risk scores',
+    outputs: 'Signed approvals/denials, audit trails',
+    models: 'ABAC/RBAC + risk scoring',
+    autonomy: 'None (enforcement only)',
+    integrations: 'IAM, XDR, Config',
+    kpis: 'Approval SLA, policy violations prevented',
+    category: 'orchestration',
+    status: 'active',
+    connections: ['HELIOS', 'QIG', 'XDR', 'CTM']
+  },
+  {
+    id: 'AMG',
+    name: 'AMG',
+    fullName: 'Agent Mesh Gateway',
+    purpose: 'Inter-agent data exchange via MCP protocol',
+    scope: 'Schema mediation, secure brokering between embedded tool agents and HELIOS',
+    inputs: 'Normalized events/evidence from all agents',
+    outputs: 'Normalized events/evidence to all agents',
+    models: 'Schema mapping + lineage tracking',
+    autonomy: 'Medium (route/transform only)',
+    integrations: 'Vendor tool agents via MCP',
+    kpis: 'Message latency, delivery reliability',
+    category: 'orchestration',
+    status: 'processing',
+    connections: ['HELIOS', 'MIM', 'BUS']
+  },
+  {
+    id: 'LGR',
+    name: 'LGR',
+    fullName: 'Immutable Audit & Evidence Store',
+    purpose: 'Tamper-evident logging of all decisions and actions',
+    scope: 'Tamper-evident logs of decisions, approvals, actions',
+    inputs: 'Signed events from all agents',
+    outputs: 'Audit packs, compliance proofs',
+    models: 'Integrity checks, anomaly detection on audit gaps',
+    autonomy: 'Low (storage only)',
+    integrations: 'All agents',
+    kpis: 'Audit completeness, mean time to reconstruct incident',
+    category: 'orchestration',
+    status: 'active',
+    connections: ['HELIOS', 'GATE', 'XDR', 'QIG', 'KBR']
+  },
+  {
+    id: 'KBR',
+    name: 'KBR',
+    fullName: 'Reporting, Compliance & Knowledge Base',
+    purpose: 'Generate reports, ensure compliance, maintain knowledge base',
+    scope: 'NLG reports, policy checks, KB updates, dashboards',
+    inputs: 'Incident timelines, actions, configs',
+    outputs: 'Executive/technical reports, compliance flags, KB articles',
+    models: 'NLG, rules against frameworks (NIST/ISO)',
+    autonomy: 'High for reporting; approvals for external notices',
+    integrations: 'HELIOS, Config, Incident',
+    kpis: 'Report accuracy, compliance drift',
+    category: 'orchestration',
+    status: 'active',
+    connections: ['HELIOS', 'LGR', 'INC', 'PMX']
+  },
+
+  // Security (SOC)
+  {
+    id: 'SEA',
+    name: 'SEA',
+    fullName: 'SIEM Analytics',
+    purpose: 'Real-time detection & correlation of security events',
+    scope: 'Log ingest, UEBA, anomaly/sequence detection',
+    inputs: 'Logs from endpoints, servers, apps, IAM',
+    outputs: 'Enriched alerts with context/risk scores',
+    models: 'UEBA, clustering, supervised TTP classifiers',
+    autonomy: 'Detect only',
+    integrations: 'HELIOS, TIA, QIG',
+    kpis: 'Detection quality, alert reduction',
+    category: 'security',
+    status: 'processing',
+    connections: ['HELIOS', 'TIA', 'QIG', 'INC']
+  },
+  {
+    id: 'TIA',
+    name: 'TIA',
+    fullName: 'Threat Intelligence Aggregator',
+    purpose: 'External intel aggregation & predictive threat analysis',
+    scope: 'IoCs/TTPs ingestion, relevance scoring, predictive trends',
+    inputs: 'Feeds, advisories, reports',
+    outputs: 'Intel cards, indicator watchlists, rule updates',
+    models: 'NLP entity extraction, trend forecasting',
+    autonomy: 'Medium (auto-curate watchlists)',
+    integrations: 'SEA, XDR, Config',
+    kpis: 'Time-to-curate, matched IoCs to internal hits',
+    category: 'security',
+    status: 'active',
+    connections: ['HELIOS', 'SEA', 'XDR', 'CTM']
+  },
+  {
+    id: 'INC',
+    name: 'INC',
+    fullName: 'Incident Workflow Manager',
+    purpose: 'SOAR-like workflow orchestration for incidents',
+    scope: 'Dedup to incident, runbooks, tasking, status/SLAs',
+    inputs: 'Alerts/events from detection systems',
+    outputs: 'Orchestrated steps, escalations, status updates',
+    models: 'Recommender for next best action',
+    autonomy: 'Medium; approvals embedded in workflows',
+    integrations: 'HELIOS, XDR',
+    kpis: 'Playbook adherence, queue time',
+    category: 'security',
+    status: 'active',
+    connections: ['HELIOS', 'SEA', 'XDR', 'KBR', 'RED']
+  },
+  {
+    id: 'XDR',
+    name: 'XDR',
+    fullName: 'Automated Response Orchestrator',
+    purpose: 'Execute containment and remediation actions',
+    scope: 'Isolate, block, patch, rollback',
+    inputs: 'HELIOS plan, playbook directives',
+    outputs: 'Device/account states, policy changes',
+    models: 'Action selection heuristics',
+    autonomy: 'Variable; gates for high-impact actions (e.g., server shutdown)',
+    integrations: 'EDR/NAC/Cloud APIs, Config',
+    kpis: 'Action success rate, rollback success',
+    category: 'security',
+    status: 'alert',
+    connections: ['HELIOS', 'GATE', 'TIA', 'INC', 'CTM', 'LGR']
+  },
+  {
+    id: 'QIG',
+    name: 'QIG',
+    fullName: 'Quantum-resilient Identity Guardian',
+    purpose: 'IAM + post-quantum security management',
+    scope: 'Risk-based authZ/authN, continuous verification; track crypto posture; migrate to PQC',
+    inputs: 'Sign-in/token usage, device/user context, crypto inventory',
+    outputs: 'Risk scores, JIT access, lock/disable, PQC migration plans',
+    models: 'IAM risk models, behavioral biometrics, policy engine',
+    autonomy: 'High for prompts/MFA; gates for disable/rotate secrets',
+    integrations: 'HELIOS, GATE, IDP/PKI',
+    kpis: 'Compromised IDs neutralized, PQC coverage %',
+    category: 'security',
+    status: 'active',
+    connections: ['HELIOS', 'GATE', 'SEA', 'LGR', 'AIM']
+  },
+  {
+    id: 'DFA',
+    name: 'DFA',
+    fullName: 'Deepfake Analysis',
+    purpose: 'Synthetic media defense and authenticity verification',
+    scope: 'Audio/video/image authenticity checks; prevent impersonation',
+    inputs: 'Comms media, voicemails, attachments',
+    outputs: 'Confidence scores, warnings, auto-quarantine decisions',
+    models: 'Audio spectral/visual artifact detectors',
+    autonomy: 'Medium; auto-flag/hold, human approve for purge',
+    integrations: 'Email/UC tools, HELIOS',
+    kpis: '% deepfakes intercepted, false-alert rate',
+    category: 'security',
+    status: 'idle',
+    connections: ['HELIOS', 'MIM']
+  },
+  {
+    id: 'MIM',
+    name: 'MIM',
+    fullName: 'Model Integrity Monitor',
+    purpose: 'LLM/AI model safety & drift detection',
+    scope: 'Monitor embedded agents/models for hijack/drift, harmful outputs',
+    inputs: 'Prompts, outputs, telemetry',
+    outputs: 'Anomaly alerts, block/contain model use',
+    models: 'Behavior scoring, canary tests',
+    autonomy: 'Medium; gate for disabling models',
+    integrations: 'HELIOS, AMG',
+    kpis: 'Integrity incidents caught, mean time to rollback',
+    category: 'security',
+    status: 'active',
+    connections: ['HELIOS', 'AMG', 'DFA']
+  },
+  {
+    id: 'RED',
+    name: 'RED',
+    fullName: 'Offensive Testing Agent',
+    purpose: 'Continuous validation via attack simulation',
+    scope: 'Simulate attacks (phish, API abuse, lateral movement), feed learnings',
+    inputs: 'Test plans, TI scenarios',
+    outputs: 'Findings, prioritized remediation, updated playbooks',
+    models: 'BAS frameworks + custom scripts',
+    autonomy: 'Low-medium; runs in sandbox with approvals',
+    integrations: 'HELIOS, INC, KBR',
+    kpis: 'Time-to-validate, % mitigations implemented',
+    category: 'security',
+    status: 'idle',
+    connections: ['HELIOS', 'INC', 'KBR']
+  },
+
+  // Network (NOC)
+  {
+    id: 'NPM',
+    name: 'NPM',
+    fullName: 'Performance Monitoring & Anomaly Detection',
+    purpose: 'Network health & SLA monitoring',
+    scope: 'Baselines for latency, jitter, loss, device health',
+    inputs: 'SNMP/telemetry/flows',
+    outputs: 'Anomalies, capacity forecasts',
+    models: 'Time-series (seasonal), anomaly detection',
+    autonomy: 'Detect/report only',
+    integrations: 'HELIOS, TAO',
+    kpis: 'Early warnings, SLA breaches prevented',
+    category: 'network',
+    status: 'active',
+    connections: ['HELIOS', 'TAO', 'FDR']
+  },
+  {
+    id: 'FDR',
+    name: 'FDR',
+    fullName: 'Fault Detection & Self-Recovery',
+    purpose: 'Outage RCA & automated recovery',
+    scope: 'Device/link/process failures; reboot/restart/redirect',
+    inputs: 'Heartbeats, topology, logs',
+    outputs: 'RCA, recovery actions',
+    models: 'Graph-RCA, rules + RL for fix selection',
+    autonomy: 'Medium; gates for disruptive changes',
+    integrations: 'HELIOS, CTM',
+    kpis: 'Service restoration time, auto-fix rate',
+    category: 'network',
+    status: 'processing',
+    connections: ['HELIOS', 'NPM', 'CTM']
+  },
+  {
+    id: 'CTM',
+    name: 'CTM',
+    fullName: 'Configuration & Topology Manager',
+    purpose: 'Source of truth for network config & intent',
+    scope: 'Live maps; drift/compliance; safe rollouts',
+    inputs: 'LLDP/routing tables/configs',
+    outputs: 'Normalized topology, drift alerts, change sets',
+    models: 'Drift detection, intent validation',
+    autonomy: 'Medium; gates for wide changes',
+    integrations: 'HELIOS, XDR, TAO',
+    kpis: 'Drift eliminated, change success rate',
+    category: 'network',
+    status: 'active',
+    connections: ['HELIOS', 'GATE', 'TIA', 'XDR', 'FDR', 'TAO']
+  },
+  {
+    id: 'TAO',
+    name: 'TAO',
+    fullName: 'Traffic Analysis & Optimization',
+    purpose: 'Dynamic routing/QoS & NDR',
+    scope: 'Flow analytics, DDoS hints, path optimization, segmentation',
+    inputs: 'NetFlow/sFlow/SDN telemetry',
+    outputs: 'QoS changes, route shifts, isolation rules',
+    models: 'Control-policy + RL optimization',
+    autonomy: 'Medium; gates for global reroutes',
+    integrations: 'HELIOS, CTM',
+    kpis: 'Latency improvement, congestion avoided',
+    category: 'network',
+    status: 'active',
+    connections: ['HELIOS', 'NPM', 'CTM']
+  },
+  {
+    id: 'PMX',
+    name: 'PMX',
+    fullName: 'Predictive Maintenance',
+    purpose: 'Fail-before-fix planning',
+    scope: 'Component health forecasting, grouped maintenance windows',
+    inputs: 'Error counters, temps, optics, SMART data',
+    outputs: 'Risk forecasts, work orders',
+    models: 'Survival/regression/LSTM',
+    autonomy: 'Low-medium; schedules via ITSM',
+    integrations: 'HELIOS, KBR',
+    kpis: 'Surprise failures reduced, planned vs unplanned work ratio',
+    category: 'network',
+    status: 'idle',
+    connections: ['HELIOS', 'KBR']
+  },
+
+  // Shared Services
+  {
+    id: 'BUS',
+    name: 'BUS',
+    fullName: 'Event Bus & Data Lake',
+    purpose: 'High-throughput evidence exchange',
+    scope: 'Kafka/event-mesh, stitched data lake',
+    inputs: 'All telemetry/evidence from agents',
+    outputs: 'All telemetry/evidence to agents',
+    models: 'Lineage/indexing',
+    autonomy: 'Infra service (always on)',
+    integrations: 'All agents',
+    kpis: 'Throughput, retention, query latency',
+    category: 'shared',
+    status: 'active',
+    connections: ['HELIOS', 'AMG', 'DTS']
+  },
+  {
+    id: 'DTS',
+    name: 'DTS',
+    fullName: 'Digital Twin Simulator',
+    purpose: 'Sandbox & what-if analysis',
+    scope: 'Simulate SOC/NOC actions; impact checks',
+    inputs: 'Topology, traffic, configs, incident context',
+    outputs: 'Predicted impact/cost-risk; recommended safe plan',
+    models: 'Network simulation + counterfactuals',
+    autonomy: 'Advisory; execution via HELIOS after approval',
+    integrations: 'HELIOS, CTM, TAO',
+    kpis: 'Change-induced incidents avoided',
+    category: 'shared',
+    status: 'active',
+    connections: ['HELIOS', 'BUS', 'CTM', 'TAO']
+  },
+  {
+    id: 'AIM',
+    name: 'AIM',
+    fullName: 'Asset Inventory & SBOM',
+    purpose: 'Unified catalog of identities/devices/software',
+    scope: 'Identities (human/machine), devices, apps, keys, certificates, SBOMs',
+    inputs: 'CMDB, IDP, scanners',
+    outputs: 'Exposure maps, blast radius estimates',
+    models: 'Graph analytics',
+    autonomy: 'Detect/report only',
+    integrations: 'QIG, CTM, HELIOS',
+    kpis: 'Inventory completeness, stale credentials removed',
+    category: 'shared',
+    status: 'active',
+    connections: ['HELIOS', 'QIG', 'CTM']
+  },
+];
+
+export const designPrinciples = [
+  {
+    title: 'Zero-touch, Human-gated',
+    description: 'Every high-impact action pauses for approval; routine actions are auto-executed only if pre-whitelisted and permissioned. Approvals are cryptographically signed; all actions are auditable.',
+    icon: 'Lock'
+  },
+  {
+    title: 'Agentic Mesh',
+    description: 'Specialized agents publish/subscribe on an event bus and exchange evidence via an MCP-style Agent Mesh Gateway for cross-tool data sharing.',
+    icon: 'Network'
+  },
+  {
+    title: 'Zero Trust + Quantum Resilience',
+    description: 'Continuous, risk-adaptive verification for identities, tokens and inter-agent calls; migration to post-quantum crypto where feasible.',
+    icon: 'Shield'
+  },
+  {
+    title: 'Simulate-before-act',
+    description: 'Digital twin/sandbox runs "what-if" to de-risk changes across SOC/NOC.',
+    icon: 'Globe'
+  }
+];
+
+export const workflowSteps = [
+  {
+    step: 1,
+    title: 'Detection',
+    description: 'SEA/NPM/TAO raise high-confidence alerts → HELIOS correlates multi-domain signals',
+    agents: ['SEA', 'NPM', 'TAO', 'HELIOS']
+  },
+  {
+    step: 2,
+    title: 'Plan',
+    description: 'HELIOS drafts response; DTS simulates impact; INC builds the workflow',
+    agents: ['HELIOS', 'DTS', 'INC']
+  },
+  {
+    step: 3,
+    title: 'Approval',
+    description: 'GATE assembles action bundle (risk, blast radius, rollback) → routes to approver',
+    agents: ['GATE', 'HELIOS']
+  },
+  {
+    step: 4,
+    title: 'Execute',
+    description: 'XDR/CTM/TAO/FDR carry out steps; QIG enforces identity actions; LGR records signed events',
+    agents: ['XDR', 'CTM', 'TAO', 'FDR', 'QIG', 'LGR']
+  },
+  {
+    step: 5,
+    title: 'Verify & Learn',
+    description: 'Post-checks; KBR reports & updates KB; models refine baselines',
+    agents: ['KBR', 'HELIOS']
+  }
+];

@@ -1,0 +1,4 @@
+project_id = "tmgzmvfquwytrjlklbfi"
+
+[functions.knowledge-base-chat]
+verify_jwt = false

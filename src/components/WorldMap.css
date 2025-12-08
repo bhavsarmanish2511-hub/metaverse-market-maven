@@ -1,0 +1,21 @@
+.leaflet-container {
+    height: 100%;
+    width: 100%;
+    border-radius: 0.5rem; /* Corresponds to Tailwind's rounded-lg */
+  }
+  
+  .custom-tooltip {
+    background-color: hsl(var(--popover));
+    color: hsl(var(--popover-foreground));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    padding: 4px 8px;
+    font-size: 12px;
+    white-space: nowrap;
+    box-shadow: none;
+  }
+  
+  /* Hide the default pointy arrow on the tooltip */
+  .leaflet-tooltip-top:before, .leaflet-tooltip-bottom:before, .leaflet-tooltip-left:before, .leaflet-tooltip-right:before {
+    border: none !important;
+  }
