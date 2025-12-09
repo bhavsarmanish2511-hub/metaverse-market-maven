@@ -296,7 +296,7 @@ export function AgenticMesh() {
             className="h-8"
           >
             {isAnimating ? <Pause className="h-3 w-3 mr-1" /> : <Play className="h-3 w-3 mr-1" />}
-            {isAnimating ? 'Pause' : 'Animate'}
+            {isAnimating ? 'Pause' : 'Resume'}
           </Button>
           <Button
             variant="outline"

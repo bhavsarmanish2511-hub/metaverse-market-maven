@@ -2,7 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { QuantumStatusIndicator } from "@/components/QuantumStatusIndicator";
-import { FingerprintAuthModal } from "@/components/FingerprintAuthModal";
+import { BiometricAuthModal } from "@/components/BiometricAuthModal";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Fingerprint, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,28 +19,46 @@ import { useToast } from "@/hooks/use-toast";
 import { RoleSwitcher } from "@/components/header/RoleSwitcher";
 import { NotificationBell } from "@/components/header/NotificationBell";
 import { useRole } from "@/contexts/RoleContext";
+import { useState } from "react";
 
 export function AppLayout() {
   const { isIRCLeaderMode, setIRCLeaderMode } = useIRCLeader();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { pendingRole, setCurrentRole, isVerified, setIsVerified, roleName } = useRole();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingRoleForAuth, setPendingRoleForAuth] = useState(pendingRole);
+
+  const getRoleName = (role: string) => {
+    switch (role) {
+      case 'rcc_head': return 'Resilient Command Centre Head';
+      case 'analyst': return 'Integrated Operations Analyst';
+      case 'irc_leader': return 'IRC Leader';
+      case 'offensive_tester': return 'Offensive Tester';
+      default: return 'User';
+    }
+  };
+
+  const handleRoleChange = (newRole: typeof pendingRole) => {
+    setPendingRoleForAuth(newRole);
+    setShowAuthModal(true);
+    toast({
+      title: "Role Change Required",
+      description: `Please verify your identity for ${getRoleName(newRole)} role.`,
+    });
+  };
 
   const handleVerifySuccess = () => {
+    setShowAuthModal(false);
     setIsVerified(true);
-    setCurrentRole(pendingRole);
+    setCurrentRole(pendingRoleForAuth);
     toast({
       title: "Identity Verified",
-      description: `Biometric authentication successful. Access granted as ${
-        pendingRole === 'rcc_head' ? 'Resilient Command Centre Head' :
-        pendingRole === 'analyst' ? 'Integrated Operations Analyst' :
-        pendingRole === 'irc_leader' ? 'IRC Leader' :
-        'Offensive Tester'
-      }.`,
+      description: `Biometric authentication successful. Access granted as ${getRoleName(pendingRoleForAuth)}.`,
     });
-    
+
     // Navigate to role-specific dashboard
-    switch (pendingRole) {
+    switch (pendingRoleForAuth) {
       case 'rcc_head':
         navigate('/admin');
         break;
@@ -79,15 +97,18 @@ export function AppLayout() {
             <div className="flex items-center gap-3">
               <NotificationBell />
               <QuantumStatusIndicator />
-              
+
               {/* Role Switcher aligned with Verify ID */}
-              <RoleSwitcher />
-              
+              <RoleSwitcher onRoleChange={handleRoleChange} />
+
               {/* Verify ID Button */}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => document.getElementById('fingerprint-auth-trigger')?.click()}
+                onClick={() => {
+                  setPendingRoleForAuth(pendingRole);
+                  setShowAuthModal(true);
+                }}
                 className={`gap-2 border-primary/30 hover:border-primary hover:bg-primary/10 ${
                   isVerified ? 'border-success/50 bg-success/10 text-success' : ''
                 }`}
@@ -104,11 +125,11 @@ export function AppLayout() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 gap-3 pl-2 pr-3 hover:bg-muted/50">
                       <Avatar className="h-8 w-8 border-2 border-primary/50">
-                        <AvatarImage src="https://api.dicebear.com/7.x/personas/svg?seed=SecureUser" alt="User" />
-                        <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">SU</AvatarFallback>
+                        <AvatarImage src="https://api.dicebear.com/7.x/personas/svg?seed=BenHughes" alt="Ben Hughes" />
+                        <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">BH</AvatarFallback>
                       </Avatar>
                       <div className="hidden sm:flex flex-col items-start text-left">
-                        <span className="text-sm font-medium">Verified User</span>
+                        <span className="text-sm font-medium">Ben Hughes</span>
                         <span className="text-xs text-primary font-semibold">{roleName}</span>
                       </div>
                     </Button>
@@ -116,11 +137,11 @@ export function AppLayout() {
                   <DropdownMenuContent align="end" className="w-56 bg-popover border-border">
                     <div className="flex items-center gap-3 p-3">
                       <Avatar className="h-10 w-10 border-2 border-primary/50">
-                        <AvatarImage src="https://api.dicebear.com/7.x/personas/svg?seed=SecureUser" alt="User" />
-                        <AvatarFallback className="bg-primary/20 text-primary font-bold">SU</AvatarFallback>
+                        <AvatarImage src="https://api.dicebear.com/7.x/personas/svg?seed=BenHughes" alt="Ben Hughes" />
+                        <AvatarFallback className="bg-primary/20 text-primary font-bold">BH</AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">
-                        <span className="text-sm font-semibold">Verified User</span>
+                        <span className="text-sm font-semibold">Ben Hughes</span>
                         <span className="text-xs text-primary">{roleName}</span>
                       </div>
                     </div>
@@ -145,12 +166,12 @@ export function AppLayout() {
         </div>
       </div>
 
-      <FingerprintAuthModal 
-        open={false} 
-        onClose={() => {}}
+      {/* Biometric Auth Modal with carousel */}
+      <BiometricAuthModal
+        open={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
         onSuccess={handleVerifySuccess}
-        roleName={roleName}
-        triggerId="fingerprint-auth-trigger"
+        roleName={getRoleName(pendingRoleForAuth)}
       />
     </SidebarProvider>
   );

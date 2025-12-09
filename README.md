@@ -70,4 +70,15 @@ Yes, you can!
 
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+
+"SecureNet Command Center," a sophisticated dashboard for security and network operations.
+
+Architecture:
+
+Frontend: It's a React single-page application built with Vite and TypeScript.
+Backend: It's set up to use Supabase for database and authentication.
+UI: The interface is built with TailwindCSS and shadcn/ui components, featuring rich data visualizations.
+Current Status: The application is a high-fidelity prototype. The UI is well-developed, but the authentication and data are currently mocked. The Supabase integration is configured but not yet fully implemented.
+
+In short, it's a comprehensive security dashboard prototype, ready for backend integration. Let me know if you'd like to dive into any specific part of the codebase.

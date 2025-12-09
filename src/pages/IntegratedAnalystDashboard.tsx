@@ -287,8 +287,8 @@ export default function IntegratedAnalystDashboard() {
                   <button
                     onClick={() => setSelectedPhase(key)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
-                      selectedPhase === key 
-                        ? "border-primary bg-primary/10" 
+                      selectedPhase === key
+                        ? "border-primary bg-primary/10"
                         : phaseStatusColors[phase.status]
                     }`}
                   >
@@ -551,8 +551,8 @@ export default function IntegratedAnalystDashboard() {
                 <ScrollArea className="h-[300px]">
                   <div className="space-y-3">
                     {agentUpdates.map((update) => (
-                      <div 
-                        key={update.id} 
+                      <div
+                        key={update.id}
                         className={`p-4 rounded-lg border ${
                           update.priority === "critical" ? "border-error/30 bg-error/5" :
                           update.priority === "high" ? "border-warning/30 bg-warning/5" :
@@ -660,8 +660,8 @@ export default function IntegratedAnalystDashboard() {
               <CardContent>
                 <div className="space-y-4">
                   {offensiveReports.map((report) => (
-                    <div 
-                      key={report.id} 
+                    <div
+                      key={report.id}
                       className={`p-4 rounded-lg border hover:shadow-md transition-all cursor-pointer ${
                         report.status === "action-required" ? "border-error/30 bg-error/5" : "border-border"
                       }`}

@@ -145,10 +145,10 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild disabled={isIRCLeaderMode}>
-                  <NavLink 
-                    to="/" 
-                    end 
-                    className={`hover:bg-accent ${isIRCLeaderMode ? 'opacity-50 pointer-events-none' : ''}`} 
+                  <NavLink
+                    to="/"
+                    end
+                    className={`hover:bg-accent ${isIRCLeaderMode ? 'opacity-50 pointer-events-none' : ''}`}
                     activeClassName="bg-accent text-accent-foreground font-medium"
                   >
                     <Home className="h-4 w-4" />
@@ -172,7 +172,7 @@ export function AppSidebar() {
                 {analystItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild disabled={isIRCLeaderMode}>
-                      <NavLink 
+                      <NavLink
                         to={item.url}
                         className={`hover:bg-primary/10 hover:text-primary ${isIRCLeaderMode ? 'opacity-50 pointer-events-none' : ''}`}
                         activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary"
@@ -200,7 +200,7 @@ export function AppSidebar() {
                 {adminItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <NavLink 
+                      <NavLink
                         to={item.url}
                         className="hover:bg-warning/10 hover:text-warning"
                         activeClassName="bg-warning/10 text-warning font-medium border-l-2 border-warning"
@@ -228,7 +228,7 @@ export function AppSidebar() {
                 {ircItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <NavLink 
+                      <NavLink
                         to={item.url}
                         className="hover:bg-error/10 hover:text-error"
                         activeClassName="bg-error/10 text-error font-medium border-l-2 border-error"
@@ -256,8 +256,8 @@ export function AppSidebar() {
                 {socItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild disabled={isIRCLeaderMode}>
-                      <NavLink 
-                        to={item.url} 
+                      <NavLink
+                        to={item.url}
                         className={`hover:bg-soc-muted hover:text-soc ${isIRCLeaderMode ? 'opacity-50 pointer-events-none' : ''} ${
                           (item.url === '/quantum') ? 'hover:bg-quantum-primary/10 hover:text-quantum-primary' : ''
                         }`}
@@ -288,7 +288,7 @@ export function AppSidebar() {
                 {nocItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild disabled={isIRCLeaderMode}>
-                      <NavLink 
+                      <NavLink
                         to={item.url}
                         className={`hover:bg-noc-muted hover:text-noc ${isIRCLeaderMode ? 'opacity-50 pointer-events-none' : ''} ${
                           (item.url === '/network-topology') ? 'hover:bg-quantum-primary/10 hover:text-quantum-primary' : ''
@@ -320,7 +320,7 @@ export function AppSidebar() {
                 {offensiveItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <NavLink 
+                      <NavLink
                         to={item.url}
                         className="hover:bg-warning/10 hover:text-warning"
                         activeClassName="bg-warning/10 text-warning font-medium border-l-2 border-warning"
@@ -343,7 +343,7 @@ export function AppSidebar() {
               {/* Exit IRC Mode button */}
               {isIRCLeaderMode && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton 
+                  <SidebarMenuButton
                     onClick={handleExitIRCMode}
                     className="h-10 hover:bg-error/10 rounded-md transition-colors group mb-2"
                   >
@@ -356,32 +356,21 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-              
-              {user && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    onClick={() => signOut()} 
-                    className="h-12 hover:bg-muted/50 rounded-md transition-colors group"
-                  >
-                    <div className="flex items-center gap-3 w-full">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary text-sm font-medium">
-                          {user.username.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      {open && (
-                        <div className="flex flex-col items-start flex-1 min-w-0">
-                          <span className="text-sm font-medium truncate w-full">{user.username}</span>
-                          <span className="text-xs text-muted-foreground truncate w-full">{user.email}</span>
-                        </div>
-                      )}
-                      {open && (
-                        <LogOut className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
-                      )}
-                    </div>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
+
+              {/* Microsoft-style Sign Out button */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => signOut()}
+                  className="h-10 hover:bg-muted/50 rounded-md transition-colors group"
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <Server className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    {open && (
+                      <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Sign out</span>
+                    )}
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

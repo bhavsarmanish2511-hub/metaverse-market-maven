@@ -42,7 +42,7 @@ export function FingerprintAuthModal({ open: externalOpen, onClose, onSuccess, r
 
     // Simulate verification delay
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     setScanStatus('success');
     setIsScanning(false);
 
@@ -85,13 +85,13 @@ export function FingerprintAuthModal({ open: externalOpen, onClose, onSuccess, r
           <div className="relative">
             {/* Outer ring */}
             <div className={`absolute inset-0 rounded-full border-4 transition-all duration-500 ${
-              scanStatus === 'success' 
-                ? 'border-success animate-pulse' 
-                : scanStatus === 'scanning' 
-                  ? 'border-login-glow animate-pulse' 
+              scanStatus === 'success'
+                ? 'border-success animate-pulse'
+                : scanStatus === 'scanning'
+                  ? 'border-login-glow animate-pulse'
                   : 'border-login-glow/30'
             }`} />
-            
+
             {/* Progress ring */}
             <svg className="w-40 h-40 transform -rotate-90">
               <circle
@@ -121,15 +121,15 @@ export function FingerprintAuthModal({ open: externalOpen, onClose, onSuccess, r
             {/* Center icon */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className={`p-6 rounded-full transition-all duration-500 ${
-                scanStatus === 'success' 
-                  ? 'bg-success/20' 
-                  : scanStatus === 'scanning' 
-                    ? 'bg-login-glow/20 animate-pulse' 
+                scanStatus === 'success'
+                  ? 'bg-success/20'
+                  : scanStatus === 'scanning'
+                    ? 'bg-login-glow/20 animate-pulse'
                     : 'bg-login-glow/10'
               }`}>
                 <Fingerprint className={`h-16 w-16 transition-colors duration-500 ${
-                  scanStatus === 'success' 
-                    ? 'text-success' 
+                  scanStatus === 'success'
+                    ? 'text-success'
                     : 'text-login-glow'
                 }`} />
               </div>
@@ -138,7 +138,7 @@ export function FingerprintAuthModal({ open: externalOpen, onClose, onSuccess, r
             {/* Scanning line effect */}
             {isScanning && (
               <div className="absolute inset-0 overflow-hidden rounded-full">
-                <div 
+                <div
                   className="absolute left-0 right-0 h-1 bg-gradient-to-b from-transparent via-login-glow to-transparent animate-[scan-line_1.5s_ease-in-out_infinite]"
                   style={{ top: `${scanProgress}%` }}
                 />

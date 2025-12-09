@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "./components/AppLayout";
+import { CommandCenterLayout } from "./components/CommandCenterLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthProvider } from "./hooks/useAuth";
 import { IRCLeaderProvider } from "./contexts/IRCLeaderContext";
@@ -40,6 +41,8 @@ import ExploitFramework from "./pages/offensive/ExploitFramework";
 import CredentialTesting from "./pages/offensive/CredentialTesting";
 import AdminConsole from "./pages/AdminConsole";
 import IntegratedAnalystDashboard from "./pages/IntegratedAnalystDashboard";
+import OffensiveTesterDashboardPage from "./pages/OffensiveTesterDashboardPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -54,8 +57,12 @@ const App = () => (
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                {/* Command Center - No sidebar layout for main dashboard */}
+                <Route path="/" element={<ProtectedRoute><CommandCenterLayout /></ProtectedRoute>}>
                   <Route index element={<Dashboard />} />
+                </Route>
+                {/* App Layout with sidebar for other pages */}
+                <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                   <Route path="analyst" element={<IntegratedAnalystDashboard />} />
                   <Route path="soc-overview" element={<SocOverview />} />
                   <Route path="noc-overview" element={<NocOverview />} />
@@ -84,6 +91,7 @@ const App = () => (
                   <Route path="offensive/pentest" element={<PenetrationTesting />} />
                   <Route path="offensive/exploits" element={<ExploitFramework />} />
                   <Route path="offensive/credentials" element={<CredentialTesting />} />
+                  <Route path="offensive-tester" element={<OffensiveTesterDashboardPage />} />
                   <Route path="admin" element={<AdminConsole />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>

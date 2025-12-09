@@ -31,24 +31,36 @@ const iconMap = {
   Crown: Crown,
 };
 
-export function RoleSwitcher() {
-  const { pendingRole, setPendingRole, isVerified, currentRole } = useRole();
-  
+interface RoleSwitcherProps {
+  onRoleChange?: (role: UserRole) => void;
+}
+
+export function RoleSwitcher({ onRoleChange }: RoleSwitcherProps) {
+  const { pendingRole, setPendingRole, isVerified, currentRole, setIsVerified } = useRole();
+
   // Show the verified role if verified, otherwise show pending selection
   const displayRole = isVerified ? currentRole : pendingRole;
   const selectedRoleData = roleOptions.find(r => r.id === displayRole);
   const SelectedIcon = iconMap[selectedRoleData?.icon || 'Crown'];
 
   const handleRoleSelect = (role: UserRole) => {
-    setPendingRole(role);
+    // If switching to a different role while verified, logout and trigger verification
+    if (isVerified && role !== currentRole) {
+      setIsVerified(false);
+      setPendingRole(role);
+      // Trigger verification modal for the new role
+      onRoleChange?.(role);
+    } else {
+      setPendingRole(role);
+    }
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           className={cn(
             "gap-2 min-w-[180px] justify-between border-primary/30 hover:border-primary",
             isVerified && "border-success/50 bg-success/5"

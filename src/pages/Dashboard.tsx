@@ -15,6 +15,7 @@ import { ThreatMap } from "@/components/widgets/ThreatMap";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useIRCLeader } from "@/contexts/IRCLeaderContext";
+import { useRole } from "@/contexts/RoleContext";
 
 const IRC_CRITICAL_ALERT = {
   id: 'irc-critical-001',
@@ -33,10 +34,41 @@ export default function Dashboard() {
   const [showCriticalAlert, setShowCriticalAlert] = useState(false);
   const [showIRCAuthModal, setShowIRCAuthModal] = useState(false);
   const [criticalAlertAdded, setCriticalAlertAdded] = useState(false);
+  const [quickStats, setQuickStats] = useState({
+    threatsBlocked: 1247,
+    networkUptime: 99.97,
+    avgResponseTime: 1.2,
+  });
   const [soundEnabled, setSoundEnabled] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { setIRCLeaderMode } = useIRCLeader();
+  const { setCurrentRole, setIsVerified } = useRole();
+
+  // Function to generate dynamic system health data
+  const generateDynamicSystemHealth = (): SystemHealth[] => {
+    const categories: SystemHealth['category'][] = ['Network Performance', 'Security Posture', 'System Availability', 'Threat Detection'];
+    return categories.map(category => {
+      const value = Math.floor(Math.random() * 11) + 90; // Random value between 90 and 100
+      let status: 'ok' | 'warning' | 'error' = 'ok';
+      if (value < 95) {
+        status = 'warning';
+      }
+      if (value < 92) {
+        status = 'error';
+      }
+      const trends: ('up' | 'down' | 'stable')[] = ['up', 'down', 'stable'];
+      const trend = trends[Math.floor(Math.random() * trends.length)];
+
+      return {
+        category,
+        value,
+        status,
+        description: `${value}% operational efficiency`,
+        trend,
+      };
+    });
+  };
 
   useEffect(() => {
     // Initial data load
@@ -49,7 +81,20 @@ export default function Dashboard() {
       setShowCriticalAlert(true);
     }, 5000);
 
-    return () => clearTimeout(alertTimer);
+    // Data refresh interval
+    const dataRefreshInterval = setInterval(() => {
+      setSystemHealth(generateDynamicSystemHealth());
+      setQuickStats(prevStats => ({
+        threatsBlocked: prevStats.threatsBlocked + Math.floor(Math.random() * 5) + 1,
+        networkUptime: Math.max(99.90, Math.min(99.99, prevStats.networkUptime + (Math.random() - 0.45) * 0.01)),
+        avgResponseTime: Math.max(0.8, Math.min(1.5, prevStats.avgResponseTime + (Math.random() - 0.5) * 0.1)),
+      }));
+    }, 3500); // Refresh data every 3.5 seconds
+
+    return () => {
+      clearTimeout(alertTimer);
+      clearInterval(dataRefreshInterval);
+    };
   }, []);
 
   const handleCriticalAlertDismiss = () => {
@@ -67,8 +112,8 @@ export default function Dashboard() {
       setCriticalAlertAdded(true);
       
       toast({
-        title: "Alert Added",
-        description: "Critical alert has been added to your active alerts list with highest priority.",
+        title: "Alert Acknowleged",
+        description: "Login to view the Critical alert.",
         duration: 5000,
       });
     }
@@ -78,10 +123,25 @@ export default function Dashboard() {
     setShowIRCAuthModal(true);
   };
 
+  const handleRoleSwitch = (newRole: string) => {
+    // Set the new role, but do not verify it yet.
+    // The router will redirect to the verification page.
+    setCurrentRole(newRole);
+    setIsVerified(false);
+    // The IRCLeaderContext is specific to that role, so we handle it here.
+    if (newRole === 'irc_leader') {
+      setIRCLeaderMode(true, 'Commander');
+    }
+  };
+
   const handleIRCAuthSuccess = () => {
     setShowIRCAuthModal(false);
     setIRCLeaderMode(true, 'Commander');
+    // Update the role context to IRC Leader
+    setCurrentRole('irc_leader');
+    setIsVerified(true);
     navigate('/irc-leader');
+    handleRoleSwitch('irc_leader');
   };
 
   const criticalAlerts = alerts.filter(a => a.type === 'critical').length;
@@ -144,7 +204,7 @@ export default function Dashboard() {
             </TabsTrigger>
             <TabsTrigger value="operations" className="flex items-center gap-2">
               <Cpu className="h-4 w-4" />
-              Operations Center
+              Dashboard
             </TabsTrigger>
           </TabsList>
 
@@ -168,88 +228,86 @@ export default function Dashboard() {
                 </div>
               </div>
               <AgenticMesh />
-            </div>
-          </TabsContent>
+              <div className="mt-6 space-y-6">
+                {/* System Health Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {systemHealth.map((health) => (
+                    <StatusCard key={health.category} health={health} />
+                  ))}
+                </div>
 
-          {/* Operations Center Tab */}
-          <TabsContent value="operations" className="mt-6 space-y-6">
-            {/* System Health Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {systemHealth.map((health) => (
-                <StatusCard key={health.category} health={health} />
-              ))}
-            </div>
-
-            {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <MetricsChart 
-                title="Network Traffic (24h)" 
-                type="area"
-                color="hsl(var(--noc))"
-              />
-              <MetricsChart 
-                title="Security Events (24h)" 
-                type="line"
-                color="hsl(var(--soc))"
-              />
-            </div>
-
-            {/* Threat Map */}
-            <ThreatMap />
-
-            {/* Active Alerts */}
-            <div id="active-alerts-section">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">Active Alerts</h2>
-                {criticalAlerts > 0 && (
-                  <Badge variant="outline" className="bg-error/10 text-error border-error/20">
-                    {criticalAlerts} Critical
-                  </Badge>
-                )}
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {alerts.map((alert) => (
-                  <AlertCard 
-                    key={alert.id} 
-                    alert={alert} 
-                    onClick={alert.requiresIRCLeader ? handleIRCAlertClick : undefined}
+                {/* Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <MetricsChart
+                    title="Network Traffic (24h)"
+                    type="area"
+                    color="hsl(var(--noc))"
                   />
-                ))}
-              </div>
-            </div>
+                  <MetricsChart
+                    title="Security Events (24h)"
+                    type="line"
+                    color="hsl(var(--soc))"
+                  />
+                </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-smooth">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-lg bg-soc/10">
-                    <Shield className="h-6 w-6 text-soc" />
+                {/* Threat Map */}
+                <ThreatMap />
+
+                {/* Active Alerts */}
+                <div id="active-alerts-section">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-bold">Active Alerts</h2>
+                    {criticalAlerts > 0 && (
+                      <Badge variant="outline" className="bg-error/10 text-error border-error/20">
+                        {criticalAlerts} Critical
+                      </Badge>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Threats Blocked</p>
-                    <p className="text-2xl font-bold">1,247</p>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {alerts.map((alert) => (
+                      <AlertCard
+                        key={alert.id}
+                        alert={alert}
+                        onClick={alert.requiresIRCLeader ? handleIRCAlertClick : undefined}
+                      />
+                    ))}
                   </div>
                 </div>
-              </div>
-              <div className="p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-smooth">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-lg bg-noc/10">
-                    <Network className="h-6 w-6 text-noc" />
+
+                {/* Quick Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-smooth">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-lg bg-soc/10">
+                        <Shield className="h-6 w-6 text-soc" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Threats Blocked</p>
+                        <p className="text-2xl font-bold">{quickStats.threatsBlocked.toLocaleString()}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Network Uptime</p>
-                    <p className="text-2xl font-bold">99.97%</p>
+                  <div className="p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-smooth">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-lg bg-noc/10">
+                        <Network className="h-6 w-6 text-noc" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Network Uptime</p>
+                        <p className="text-2xl font-bold">{quickStats.networkUptime.toFixed(2)}%</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div className="p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-smooth">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-lg bg-primary/10">
-                    <Activity className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Avg Response Time</p>
-                    <p className="text-2xl font-bold">1.2s</p>
+                  <div className="p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-smooth">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-lg bg-primary/10">
+                        <Activity className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Avg Response Time</p>
+                        <p className="text-2xl font-bold">{quickStats.avgResponseTime.toFixed(1)}s</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
