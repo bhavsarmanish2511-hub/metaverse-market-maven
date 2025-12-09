@@ -8,6 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useRole } from "@/contexts/RoleContext";
 import irisScanImage from "@/assets/iris-scan.png";
 
 const loginSchema = z.object({
@@ -36,6 +37,7 @@ export default function Login() {
   const { signIn, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { setJustLoggedIn } = useRole();
   const carouselRef = useRef<HTMLDivElement>(null);
 
   const biometricOptions: BiometricOption[] = [
@@ -133,6 +135,7 @@ export default function Login() {
     setIsSubmitting(false);
 
     if (!error) {
+      setJustLoggedIn(true);
       navigate("/");
     }
   };
@@ -153,6 +156,7 @@ export default function Login() {
         description: "Please create a demo account (demo@securenet.com) or use the email/password form.",
       });
     } else {
+      setJustLoggedIn(true);
       navigate("/");
     }
   };

@@ -10,9 +10,10 @@ interface CriticalAlertModalProps {
   onClose: () => void;
   alertTitle: string;
   alertDescription: string;
+  roleLabel?: string;
 }
 
-export function CriticalAlertModal({ open, onClose, alertTitle, alertDescription }: CriticalAlertModalProps) {
+export function CriticalAlertModal({ open, onClose, alertTitle, alertDescription, roleLabel }: CriticalAlertModalProps) {
   const [isAnnouncing, setIsAnnouncing] = useState(false);
 
   useEffect(() => {
@@ -61,7 +62,7 @@ export function CriticalAlertModal({ open, onClose, alertTitle, alertDescription
               <span className="font-semibold text-warning">HELIOS Analysis</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              This incident requires IRC Leader authorization.
+              This incident requires {roleLabel || 'authorized personnel'} attention.
             </p>
           </div>
 
