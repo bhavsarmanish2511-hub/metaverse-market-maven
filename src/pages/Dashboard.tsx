@@ -8,6 +8,7 @@ import { CriticalAlertModal } from "@/components/CriticalAlertModal";
 import { IRCAuthModal } from "@/components/IRCAuthModal";
 import { AgenticMesh } from "@/components/agentic-mesh/AgenticMesh";
 import { Alert, SystemHealth, generateAlerts, generateSystemHealth } from "@/lib/mockData";
+import { UserRole } from "@/contexts/RoleContext";
 import { Shield, Network, Activity, Bell, Zap, LayoutDashboard, ScanFace, Volume2, VolumeX, Cpu } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,23 +18,37 @@ import { useToast } from "@/hooks/use-toast";
 import { useIRCLeader } from "@/contexts/IRCLeaderContext";
 import { useRole } from "@/contexts/RoleContext";
 
-const IRC_CRITICAL_ALERT = {
-  id: 'irc-critical-001',
-  title: 'Cloud provider outage impacting core services',
-  description: 'AWS US-East-1 experiencing severe degradation. Payment processing APIs returning 503 errors. Customer transactions failing at 847/minute.',
-  type: 'critical' as const,
-  category: 'SOC' as const,
-  status: 'active' as const,
-  timestamp: new Date(),
-  requiresIRCLeader: true,
+// Role-specific critical alerts
+const ROLE_ALERTS: Record<UserRole, { title: string; description: string; category: 'SOC' | 'NOC' }> = {
+  irc_leader: {
+    title: 'Cloud provider outage impacting core services',
+    description: 'AWS US-East-1 experiencing severe degradation. Payment processing APIs returning 503 errors. Customer transactions failing at 847/minute. IRC Leader authorization required for failover.',
+    category: 'NOC',
+  },
+  analyst: {
+    title: 'Legacy server zero-day exploit during peak transactions',
+    description: 'SIEM detected unusual API calls and authentication failures on legacy server hosting sensitive customer data. Threat Intelligence Platform correlated exploit chatter from global feeds. Immediate SOAR workflow approval required.',
+    category: 'SOC',
+  },
+  offensive_tester: {
+    title: 'AI model poisoning attempt via compromised API',
+    description: 'Adversarial attack detected targeting ML inference pipeline. Malicious payloads injected through external API endpoint. Model integrity at risk - immediate security assessment required.',
+    category: 'SOC',
+  },
+  rcc_head: {
+    title: 'Multi-vector coordinated attack in progress',
+    description: 'HELIOS detected synchronized attack across network, application, and data layers. All defense protocols activated. Command Center oversight required for strategic response coordination.',
+    category: 'SOC',
+  },
 };
 
 export default function Dashboard() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [systemHealth, setSystemHealth] = useState<SystemHealth[]>([]);
   const [showCriticalAlert, setShowCriticalAlert] = useState(false);
+  const [currentAlertIndex, setCurrentAlertIndex] = useState(0);
   const [showIRCAuthModal, setShowIRCAuthModal] = useState(false);
-  const [criticalAlertAdded, setCriticalAlertAdded] = useState(false);
+  const [criticalAlertsAdded, setCriticalAlertsAdded] = useState<string[]>([]);
   const [quickStats, setQuickStats] = useState({
     threatsBlocked: 1247,
     networkUptime: 99.97,
@@ -43,19 +58,22 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { setIRCLeaderMode } = useIRCLeader();
-  const { setCurrentRole, setIsVerified } = useRole();
+  const { currentRole, setCurrentRole, setIsVerified, justLoggedIn, setJustLoggedIn } = useRole();
 
+  // All roles to show alerts for (in order)
+  const alertRoles: UserRole[] = ['irc_leader', 'analyst', 'offensive_tester'];
+  
   // Function to generate dynamic system health data
   const generateDynamicSystemHealth = (): SystemHealth[] => {
     const categories: SystemHealth['category'][] = ['Network Performance', 'Security Posture', 'System Availability', 'Threat Detection'];
     return categories.map(category => {
-      const value = Math.floor(Math.random() * 11) + 90; // Random value between 90 and 100
-      let status: 'ok' | 'warning' | 'error' = 'ok';
+      const value = Math.floor(Math.random() * 11) + 90;
+      let status: 'healthy' | 'warning' | 'critical' = 'healthy';
       if (value < 95) {
         status = 'warning';
       }
       if (value < 92) {
-        status = 'error';
+        status = 'critical';
       }
       const trends: ('up' | 'down' | 'stable')[] = ['up', 'down', 'stable'];
       const trend = trends[Math.floor(Math.random() * trends.length)];
@@ -64,7 +82,6 @@ export default function Dashboard() {
         category,
         value,
         status,
-        description: `${value}% operational efficiency`,
         trend,
       };
     });
@@ -76,10 +93,16 @@ export default function Dashboard() {
     setAlerts(initialAlerts);
     setSystemHealth(generateSystemHealth());
 
-    // Show critical alert after 5 seconds
-    const alertTimer = setTimeout(() => {
-      setShowCriticalAlert(true);
-    }, 5000);
+    // Only show sequential alerts if just logged in
+    if (justLoggedIn) {
+      // Show first alert after 5 seconds
+      const alertTimer = setTimeout(() => {
+        setCurrentAlertIndex(0);
+        setShowCriticalAlert(true);
+      }, 5000);
+
+      return () => clearTimeout(alertTimer);
+    }
 
     // Data refresh interval
     const dataRefreshInterval = setInterval(() => {
@@ -89,31 +112,49 @@ export default function Dashboard() {
         networkUptime: Math.max(99.90, Math.min(99.99, prevStats.networkUptime + (Math.random() - 0.45) * 0.01)),
         avgResponseTime: Math.max(0.8, Math.min(1.5, prevStats.avgResponseTime + (Math.random() - 0.5) * 0.1)),
       }));
-    }, 3500); // Refresh data every 3.5 seconds
+    }, 3500);
 
     return () => {
-      clearTimeout(alertTimer);
       clearInterval(dataRefreshInterval);
     };
-  }, []);
+  }, [justLoggedIn]);
 
   const handleCriticalAlertDismiss = () => {
     setShowCriticalAlert(false);
     
-    // Add the critical alert to the alerts list
-    if (!criticalAlertAdded) {
+    const currentAlertRole = alertRoles[currentAlertIndex];
+    const alertData = ROLE_ALERTS[currentAlertRole];
+    
+    // Add the dismissed alert to the alerts list if not already added
+    if (!criticalAlertsAdded.includes(currentAlertRole)) {
       const newCriticalAlert: Alert = {
-        ...IRC_CRITICAL_ALERT,
+        id: `critical-${currentAlertRole}-${Date.now()}`,
+        title: alertData.title,
+        description: alertData.description,
+        type: 'critical',
+        category: alertData.category,
+        status: 'active',
         timestamp: new Date(),
+        requiresIRCLeader: currentAlertRole === 'irc_leader',
       };
       
-      // Add to beginning of alerts (highest priority)
       setAlerts(prev => [newCriticalAlert, ...prev]);
-      setCriticalAlertAdded(true);
-      
+      setCriticalAlertsAdded(prev => [...prev, currentAlertRole]);
+    }
+    
+    // Show next alert after 5 seconds if there are more
+    const nextIndex = currentAlertIndex + 1;
+    if (nextIndex < alertRoles.length && justLoggedIn) {
+      setTimeout(() => {
+        setCurrentAlertIndex(nextIndex);
+        setShowCriticalAlert(true);
+      }, 5000);
+    } else if (nextIndex >= alertRoles.length) {
+      // All alerts shown, reset the justLoggedIn flag
+      setJustLoggedIn(false);
       toast({
-        title: "Alert Acknowleged",
-        description: "Login to view the Critical alert.",
+        title: "All Critical Alerts Acknowledged",
+        description: "Review the Active Alerts section for details.",
         duration: 5000,
       });
     }
@@ -123,7 +164,7 @@ export default function Dashboard() {
     setShowIRCAuthModal(true);
   };
 
-  const handleRoleSwitch = (newRole: string) => {
+  const handleRoleSwitch = (newRole: UserRole) => {
     // Set the new role, but do not verify it yet.
     // The router will redirect to the verification page.
     setCurrentRole(newRole);
@@ -228,6 +269,28 @@ export default function Dashboard() {
                 </div>
               </div>
               <AgenticMesh />
+              
+              {/* Active Alerts - Placed directly below mesh diagram */}
+              <div id="active-alerts-section" className="mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold">Active Alerts</h2>
+                  {criticalAlerts > 0 && (
+                    <Badge variant="outline" className="bg-error/10 text-error border-error/20">
+                      {criticalAlerts} Critical
+                    </Badge>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {alerts.map((alert) => (
+                    <AlertCard
+                      key={alert.id}
+                      alert={alert}
+                      onClick={alert.requiresIRCLeader ? handleIRCAlertClick : undefined}
+                    />
+                  ))}
+                </div>
+              </div>
+
               <div className="mt-6 space-y-6">
                 {/* System Health Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -252,27 +315,6 @@ export default function Dashboard() {
 
                 {/* Threat Map */}
                 <ThreatMap />
-
-                {/* Active Alerts */}
-                <div id="active-alerts-section">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-2xl font-bold">Active Alerts</h2>
-                    {criticalAlerts > 0 && (
-                      <Badge variant="outline" className="bg-error/10 text-error border-error/20">
-                        {criticalAlerts} Critical
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {alerts.map((alert) => (
-                      <AlertCard
-                        key={alert.id}
-                        alert={alert}
-                        onClick={alert.requiresIRCLeader ? handleIRCAlertClick : undefined}
-                      />
-                    ))}
-                  </div>
-                </div>
 
                 {/* Quick Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -320,8 +362,9 @@ export default function Dashboard() {
       <CriticalAlertModal
         open={showCriticalAlert}
         onClose={handleCriticalAlertDismiss}
-        alertTitle={IRC_CRITICAL_ALERT.title}
-        alertDescription={IRC_CRITICAL_ALERT.description}
+        alertTitle={ROLE_ALERTS[alertRoles[currentAlertIndex]]?.title || ''}
+        alertDescription={ROLE_ALERTS[alertRoles[currentAlertIndex]]?.description || ''}
+        roleLabel={alertRoles[currentAlertIndex] === 'irc_leader' ? 'IRC Leader' : alertRoles[currentAlertIndex] === 'analyst' ? 'Integrated Ops Analyst' : 'Offensive Tester'}
       />
 
       {/* IRC Leader Auth Modal */}

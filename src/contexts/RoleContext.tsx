@@ -11,6 +11,8 @@ interface RoleContextType {
   setIsVerified: (verified: boolean) => void;
   pendingRole: UserRole;
   setPendingRole: (role: UserRole) => void;
+  justLoggedIn: boolean;
+  setJustLoggedIn: (value: boolean) => void;
 }
 
 const roleNames: Record<UserRole, string> = {
@@ -26,6 +28,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const [currentRole, setCurrentRole] = useState<UserRole>('rcc_head');
   const [pendingRole, setPendingRole] = useState<UserRole>('rcc_head');
   const [isVerified, setIsVerified] = useState(false);
+  const [justLoggedIn, setJustLoggedIn] = useState(false);
 
   return (
     <RoleContext.Provider value={{
@@ -37,6 +40,8 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       setIsVerified,
       pendingRole,
       setPendingRole,
+      justLoggedIn,
+      setJustLoggedIn,
     }}>
       {children}
     </RoleContext.Provider>
