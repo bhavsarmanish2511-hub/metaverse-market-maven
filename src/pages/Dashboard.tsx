@@ -58,7 +58,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { setIRCLeaderMode } = useIRCLeader();
-  const { currentRole, setCurrentRole, setIsVerified, justLoggedIn, setJustLoggedIn } = useRole();
+  const { currentRole, setCurrentRole, setIsVerified, showLoginAlerts, setShowLoginAlerts } = useRole();
 
   // All roles to show alerts for (in order)
   const alertRoles: UserRole[] = ['irc_leader', 'analyst', 'offensive_tester'];
@@ -93,8 +93,8 @@ export default function Dashboard() {
     setAlerts(initialAlerts);
     setSystemHealth(generateSystemHealth());
 
-    // Only show sequential alerts if just logged in
-    if (justLoggedIn) {
+    // Only show sequential alerts if coming from Login page via "Initiate Scan"
+    if (showLoginAlerts) {
       // Show first alert after 5 seconds
       const alertTimer = setTimeout(() => {
         setCurrentAlertIndex(0);
@@ -117,7 +117,7 @@ export default function Dashboard() {
     return () => {
       clearInterval(dataRefreshInterval);
     };
-  }, [justLoggedIn]);
+  }, [showLoginAlerts]);
 
   const handleCriticalAlertDismiss = () => {
     setShowCriticalAlert(false);
@@ -144,14 +144,14 @@ export default function Dashboard() {
     
     // Show next alert after 5 seconds if there are more
     const nextIndex = currentAlertIndex + 1;
-    if (nextIndex < alertRoles.length && justLoggedIn) {
+    if (nextIndex < alertRoles.length && showLoginAlerts) {
       setTimeout(() => {
         setCurrentAlertIndex(nextIndex);
         setShowCriticalAlert(true);
       }, 5000);
     } else if (nextIndex >= alertRoles.length) {
-      // All alerts shown, reset the justLoggedIn flag
-      setJustLoggedIn(false);
+      // All alerts shown, reset the showLoginAlerts flag
+      setShowLoginAlerts(false);
       toast({
         title: "All Critical Alerts Acknowledged",
         description: "Review the Active Alerts section for details.",

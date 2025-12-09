@@ -13,6 +13,8 @@ interface RoleContextType {
   setPendingRole: (role: UserRole) => void;
   justLoggedIn: boolean;
   setJustLoggedIn: (value: boolean) => void;
+  showLoginAlerts: boolean;
+  setShowLoginAlerts: (value: boolean) => void;
 }
 
 const roleNames: Record<UserRole, string> = {
@@ -29,6 +31,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const [pendingRole, setPendingRole] = useState<UserRole>('rcc_head');
   const [isVerified, setIsVerified] = useState(false);
   const [justLoggedIn, setJustLoggedIn] = useState(false);
+  const [showLoginAlerts, setShowLoginAlerts] = useState(false);
 
   return (
     <RoleContext.Provider value={{
@@ -42,6 +45,8 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       setPendingRole,
       justLoggedIn,
       setJustLoggedIn,
+      showLoginAlerts,
+      setShowLoginAlerts,
     }}>
       {children}
     </RoleContext.Provider>

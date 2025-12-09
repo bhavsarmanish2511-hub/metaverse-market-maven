@@ -37,7 +37,7 @@ export default function Login() {
   const { signIn, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { setJustLoggedIn } = useRole();
+  const { setJustLoggedIn, setShowLoginAlerts } = useRole();
   const carouselRef = useRef<HTMLDivElement>(null);
 
   const biometricOptions: BiometricOption[] = [
@@ -136,6 +136,8 @@ export default function Login() {
 
     if (!error) {
       setJustLoggedIn(true);
+      // Traditional login does NOT trigger the alerts popup
+      setShowLoginAlerts(false);
       navigate("/");
     }
   };
@@ -157,6 +159,8 @@ export default function Login() {
       });
     } else {
       setJustLoggedIn(true);
+      // Only "Initiate Scan" triggers the alerts popup on Home page
+      setShowLoginAlerts(true);
       navigate("/");
     }
   };
