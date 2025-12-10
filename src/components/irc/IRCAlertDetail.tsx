@@ -3,7 +3,7 @@ import { IRCAlert, SimulationScenario, WorkflowStep } from '@/lib/ircAlertData';
 import {
   ArrowLeft, AlertTriangle, Brain, Play, Zap, GitBranch, FileText,
   CheckCircle, Clock, XCircle, Loader2, Shield, Target, Activity,
-  Server, MapPin, DollarSign, ChevronRight, Pause, Users, UserCheck, Building2, Headphones,
+  Server, MapPin, DollarSign, ChevronRight, Pause,
   TrendingUp, BarChart3, Eye, Check, ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -321,19 +321,6 @@ interface ExecutionAgent {
   progress: number;
 }
 
-// War Room data - Updated with joining flow
-const approvalChain = [
-  { level: 1, title: 'Team Lead', approver: 'Alex Chen', role: 'Senior DevOps Engineer', status: 'pending' },
-  { level: 2, title: 'Operations Manager', approver: 'Sarah Mitchell', role: 'Director of Operations', status: 'pending' },
-  { level: 3, title: 'Executive', approver: 'Michael Torres', role: 'VP of Infrastructure', status: 'pending' },
-];
-
-const coordinationTeams = [
-  { id: 1, name: 'Engineering', icon: Building2, members: 12, status: 'standby', lead: 'David Kim' },
-  { id: 2, name: 'Customer Success', icon: Headphones, members: 8, status: 'standby', lead: 'Emily Watson' },
-  { id: 3, name: 'Finance', icon: DollarSign, members: 4, status: 'standby', lead: 'Robert Chen' },
-  { id: 4, name: 'Security', icon: Shield, members: 6, status: 'standby', lead: 'Lisa Park' },
-];
 
 export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -343,12 +330,6 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
   const [selectedSimulation, setSelectedSimulation] = useState<string | null>(null);
   const [workflowTriggered, setWorkflowTriggered] = useState(false);
   const [actionsTaken, setActionsTaken] = useState<string[]>([]);
-  const [warRoomOpen, setWarRoomOpen] = useState(false);
-  const [approvals, setApprovals] = useState(approvalChain);
-  const [teams, setTeams] = useState(coordinationTeams);
-  const [warRoomActive, setWarRoomActive] = useState(false);
-  const [decisionTime, setDecisionTime] = useState<number | null>(null);
-  const [warRoomStartTime, setWarRoomStartTime] = useState<number | null>(null);
   
   // New states for enhanced functionality
   const [deepDiveOpen, setDeepDiveOpen] = useState(false);
@@ -504,92 +485,6 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
     toast.success('Execution complete! View Impact tab for results.');
   };
 
-  const handleInitiateWarRoom = () => {
-    setWarRoomOpen(true);
-    setWarRoomStartTime(Date.now());
-    toast.info('HELIOS initiating War Room coordination');
-    
-    // Team Lead joining flow
-    setTimeout(() => {
-      setApprovals(prev => prev.map((a, i) => i === 0 ? { ...a, status: 'joining' } : a));
-      playHeliosNotification();
-    }, 1500);
-    
-    setTimeout(() => {
-      setApprovals(prev => prev.map((a, i) => i === 0 ? { ...a, status: 'approved' } : a));
-      playHeliosNotification();
-    }, 3000);
-    
-    // Operations Manager joining flow
-    setTimeout(() => {
-      setApprovals(prev => prev.map((a, i) => i === 1 ? { ...a, status: 'joining' } : a));
-      playHeliosNotification();
-    }, 4000);
-    
-    setTimeout(() => {
-      setApprovals(prev => prev.map((a, i) => i <= 1 ? { ...a, status: 'approved' } : a));
-      playHeliosNotification();
-    }, 5500);
-    
-    // Executive joining flow
-    setTimeout(() => {
-      setApprovals(prev => prev.map((a, i) => i === 2 ? { ...a, status: 'joining' } : a));
-      playHeliosNotification();
-    }, 6500);
-    
-    setTimeout(() => {
-      setApprovals(prev => prev.map(a => ({ ...a, status: 'approved' })));
-      playHeliosNotification();
-      
-      // Activate teams
-      setTimeout(() => {
-        setTeams(prev => prev.map(t => ({ ...t, status: 'active' })));
-        setWarRoomActive(true);
-        const elapsed = ((Date.now() - (warRoomStartTime || Date.now())) / 1000).toFixed(1);
-        setDecisionTime(parseFloat(elapsed));
-        toast.success(`War Room activated! Decision time: ${elapsed}s`);
-      }, 1500);
-    }, 8000);
-  };
-
-  const playHeliosNotification = () => {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const gainNode = audioContext.createGain();
-      gainNode.connect(audioContext.destination);
-      
-      const tones = [
-        { freq: 523, duration: 100, gap: 50 },
-        { freq: 659, duration: 150, gap: 0 },
-      ];
-      
-      let timeOffset = 0;
-      tones.forEach(({ freq, duration, gap }) => {
-        const oscillator = audioContext.createOscillator();
-        const toneGain = audioContext.createGain();
-        
-        oscillator.connect(toneGain);
-        toneGain.connect(gainNode);
-        
-        oscillator.frequency.value = freq;
-        oscillator.type = 'sine';
-        
-        toneGain.gain.setValueAtTime(0, audioContext.currentTime + timeOffset / 1000);
-        toneGain.gain.linearRampToValueAtTime(0.12, audioContext.currentTime + (timeOffset + 20) / 1000);
-        toneGain.gain.linearRampToValueAtTime(0.08, audioContext.currentTime + (timeOffset + duration - 20) / 1000);
-        toneGain.gain.linearRampToValueAtTime(0, audioContext.currentTime + (timeOffset + duration) / 1000);
-        
-        oscillator.start(audioContext.currentTime + timeOffset / 1000);
-        oscillator.stop(audioContext.currentTime + (timeOffset + duration) / 1000);
-        
-        timeOffset += duration + gap;
-      });
-      
-      setTimeout(() => audioContext.close(), timeOffset + 100);
-    } catch (e) {
-      console.log('Audio not supported');
-    }
-  };
 
   const getStrategyDetails = (strategy: string) => {
     return aiStrategyDetails[strategy] || {
@@ -963,45 +858,6 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                 </Card>
               )}
 
-              {/* War Room Section */}
-              <div className="pt-4 border-t border-border/50">
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={() => handleTakeAction('Approve Failover')} className="gap-2">
-                    <CheckCircle className="h-4 w-4" />
-                    Approve Failover
-                  </Button>
-                  <Button variant="outline" onClick={() => handleTakeAction('Override Prioritization')}>
-                    Override Prioritization
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={handleInitiateWarRoom}
-                    className="gap-2 border-primary/50 hover:bg-primary/10"
-                  >
-                    <Users className="h-4 w-4" />
-                    Initiate War Room
-                  </Button>
-                </div>
-                
-                {warRoomActive && (
-                  <Card className="mt-4 border-success/30 bg-success/5">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-5 w-5 text-success" />
-                          <span className="font-semibold text-success">War Room Active</span>
-                        </div>
-                        <Badge variant="outline" className="bg-success/10 text-success">
-                          Decision Time: {decisionTime}s
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        All team leads joined and coordinated. Ready for execution.
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1311,110 +1167,6 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
         </DialogContent>
       </Dialog>
 
-      {/* War Room Dialog - Updated with joining flow */}
-      <Dialog open={warRoomOpen} onOpenChange={setWarRoomOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-primary" />
-              HELIOS War Room Coordination
-            </DialogTitle>
-            <DialogDescription>
-              Coordinating team leads for failover decision
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6">
-            {/* Team Joining Flow */}
-            <div>
-              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                <UserCheck className="h-4 w-4" />
-                Team Lead Coordination
-              </h4>
-              <div className="space-y-2">
-                {approvals.map((approval, idx) => (
-                  <div
-                    key={approval.level}
-                    className={cn(
-                      "flex items-center gap-3 p-3 rounded-lg border transition-all",
-                      approval.status === 'approved' && "border-success/50 bg-success/10",
-                      approval.status === 'joining' && "border-warning/50 bg-warning/10 animate-pulse",
-                      approval.status === 'pending' && "border-border bg-muted/30"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
-                      approval.status === 'approved' ? "bg-success text-success-foreground" : 
-                      approval.status === 'joining' ? "bg-warning text-warning-foreground" :
-                      "bg-muted text-muted-foreground"
-                    )}>
-                      {approval.status === 'approved' ? <CheckCircle className="h-4 w-4" /> : 
-                       approval.status === 'joining' ? <Loader2 className="h-4 w-4 animate-spin" /> : 
-                       approval.level}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium">{approval.title}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {approval.approver} • {approval.role}
-                      </div>
-                    </div>
-                    <Badge variant="outline" className={cn(
-                      approval.status === 'approved' && "bg-success/10 text-success",
-                      approval.status === 'joining' && "bg-warning/10 text-warning",
-                      approval.status === 'pending' && "bg-muted"
-                    )}>
-                      {approval.status === 'approved' ? 'Joined War Room' : 
-                       approval.status === 'joining' ? 'Joining...' : 
-                       'Waiting'}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Team Status */}
-            <div>
-              <h4 className="font-semibold mb-3">Team Status</h4>
-              <div className="grid grid-cols-2 gap-2">
-                {teams.map((team) => {
-                  const Icon = team.icon;
-                  return (
-                    <div
-                      key={team.id}
-                      className={cn(
-                        "flex items-center gap-2 p-2 rounded-lg border",
-                        team.status === 'active' ? "border-success/50 bg-success/10" : "border-border bg-muted/30"
-                      )}
-                    >
-                      <Icon className={cn(
-                        "h-4 w-4",
-                        team.status === 'active' ? "text-success" : "text-muted-foreground"
-                      )} />
-                      <div className="flex-1">
-                        <div className="text-sm font-medium">{team.name}</div>
-                        <div className="text-xs text-muted-foreground">{team.members} members</div>
-                      </div>
-                      {team.status === 'active' && <CheckCircle className="h-4 w-4 text-success" />}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {warRoomActive && (
-              <div className="p-4 rounded-lg bg-success/10 border border-success/30">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-success" />
-                  <span className="font-semibold text-success">War Room Fully Operational</span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  All team leads have joined. Decision time: {decisionTime}s (75% faster than manual process)
-                </p>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
