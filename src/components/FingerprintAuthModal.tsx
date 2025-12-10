@@ -4,15 +4,31 @@ import { Fingerprint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface FingerprintAuthModalProps {
-  open: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   onSuccess: () => void;
   roleName?: string;
+  requiredRole?: string;
   triggerId?: string;
 }
 
-export function FingerprintAuthModal({ open: externalOpen, onClose, onSuccess, roleName = 'IRC Leader', triggerId }: FingerprintAuthModalProps) {
-  const [isOpen, setIsOpen] = useState(externalOpen);
+export function FingerprintAuthModal({ 
+  open: externalOpen, 
+  isOpen: isOpenProp,
+  onClose, 
+  onSuccess, 
+  roleName,
+  requiredRole,
+  triggerId 
+}: FingerprintAuthModalProps) {
+  const displayRole = roleName || requiredRole || 'IRC Leader';
+  const controlledOpen = externalOpen ?? isOpenProp ?? false;
+  const [isOpen, setIsOpen] = useState(controlledOpen);
+  
+  useEffect(() => {
+    setIsOpen(controlledOpen);
+  }, [controlledOpen]);
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
@@ -71,7 +87,7 @@ export function FingerprintAuthModal({ open: externalOpen, onClose, onSuccess, r
           {/* Header */}
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-bold text-login-text tracking-wider">
-              {roleName.toUpperCase()} ACCESS
+              {displayRole.toUpperCase()} ACCESS
             </h2>
             <div className="relative h-[2px] w-20 mx-auto overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-login-glow to-transparent animate-[laser-sweep_3s_ease-in-out_infinite]" />
@@ -160,7 +176,7 @@ export function FingerprintAuthModal({ open: externalOpen, onClose, onSuccess, r
             {scanStatus === 'success' && (
               <>
                 <p className="text-success font-semibold">Identity Verified</p>
-                <p className="text-login-highlight text-sm">Accessing {roleName} Console...</p>
+                <p className="text-login-highlight text-sm">Accessing {displayRole} Console...</p>
               </>
             )}
           </div>

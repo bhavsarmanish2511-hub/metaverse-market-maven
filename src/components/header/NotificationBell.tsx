@@ -13,7 +13,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { useNotifications, NotificationPreferences } from '@/hooks/useNotifications';
+import { useNotifications, Notification } from '@/hooks/useNotifications';
+import { useNavigate } from 'react-router-dom';
+import { FingerprintAuthModal } from '@/components/FingerprintAuthModal';
 
 const typeStyles = {
   critical: { icon: AlertTriangle, color: 'text-destructive', bg: 'bg-destructive/10' },
@@ -24,6 +26,9 @@ const typeStyles = {
 
 export function NotificationBell() {
   const [showSettings, setShowSettings] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingNotification, setPendingNotification] = useState<Notification | null>(null);
+  const navigate = useNavigate();
   const { 
     notifications, 
     unreadCount, 
@@ -34,22 +39,56 @@ export function NotificationBell() {
     updatePreferences 
   } = useNotifications();
 
+  const handleNotificationClick = (notification: Notification) => {
+    if (notification.requiredRole) {
+      setPendingNotification(notification);
+      setShowAuthModal(true);
+    } else {
+      markAsRead(notification.id);
+    }
+  };
+
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false);
+    if (pendingNotification) {
+      markAsRead(pendingNotification.id);
+      // Navigate to the appropriate dashboard based on required role
+      if (pendingNotification.requiredRole === 'Offensive Tester') {
+        navigate('/offensive-tester');
+      } else if (pendingNotification.requiredRole === 'IRC Leader') {
+        navigate('/irc-leader');
+      }
+      setPendingNotification(null);
+    }
+  };
+
+  const handleBellClick = () => {
+    // Navigate to the first critical alert's page
+    const criticalAlert = notifications.find(n => n.type === 'critical');
+    if (criticalAlert?.requiredRole === 'Offensive Tester') {
+      navigate('/offensive-tester');
+    } else if (criticalAlert?.requiredRole === 'IRC Leader') {
+      navigate('/irc-leader');
+    }
+  };
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative h-9 w-9">
-          <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] font-bold animate-pulse"
-            >
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </Badge>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[380px] bg-popover border-border">
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="relative h-9 w-9" onClick={handleBellClick}>
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] font-bold animate-pulse"
+              >
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </Badge>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-[380px] bg-popover border-border">
         <div className="flex items-center justify-between p-3 border-b border-border">
           <div className="flex items-center gap-2">
             <span className="font-semibold">Notifications</span>
@@ -197,7 +236,7 @@ export function NotificationBell() {
                   return (
                     <DropdownMenuItem
                       key={notification.id}
-                      onClick={() => markAsRead(notification.id)}
+                      onClick={() => handleNotificationClick(notification)}
                       className={cn(
                         "flex items-start gap-3 p-3 cursor-pointer focus:bg-muted/50",
                         !notification.read && "bg-muted/30"
@@ -247,7 +286,18 @@ export function NotificationBell() {
             </div>
           </>
         )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      
+      <FingerprintAuthModal
+        isOpen={showAuthModal}
+        onClose={() => {
+          setShowAuthModal(false);
+          setPendingNotification(null);
+        }}
+        onSuccess={handleAuthSuccess}
+        requiredRole={pendingNotification?.requiredRole}
+      />
+    </>
   );
 }

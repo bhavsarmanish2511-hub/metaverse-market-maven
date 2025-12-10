@@ -9,6 +9,7 @@ export interface Alert {
   timestamp: Date;
   status: 'active' | 'resolved' | 'investigating';
   requiresIRCLeader?: boolean;
+  targetRole?: 'irc_leader' | 'analyst' | 'offensive_tester';
 }
 
 export interface SystemHealth {

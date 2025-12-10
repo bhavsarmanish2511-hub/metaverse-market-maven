@@ -249,12 +249,12 @@ export function BiometricAuthModal({ open, onClose, onSuccess, roleName = 'User'
                           opacity,
                           zIndex,
                         }}
-                        onClick={() => !isCenter && selectBiometric(option.realIndex)}
+                        onClick={() => (isCenter ? handleAuthenticate() : selectBiometric(option.realIndex))}
                       >
                         <div 
                           className={`flex flex-col items-center gap-2 p-4 md:p-5 rounded-xl border transition-all duration-500 ${
                             isCenter 
-                              ? 'border-login-glow bg-login-glow/10 shadow-[0_0_25px_rgba(43,208,255,0.4)]' 
+                              ? 'border-login-glow bg-login-glow/10 shadow-[0_0_25px_rgba(43,208,255,0.4)] cursor-pointer' 
                               : 'border-login-glow/20 bg-login-panel/30 hover:border-login-glow/50'
                           }`}
                         >

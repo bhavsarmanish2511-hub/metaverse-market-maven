@@ -1,33 +1,24 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
 interface IRCLeaderContextType {
-  isIRCLeaderMode: boolean;
-  ircLeaderName: string;
-  setIRCLeaderMode: (active: boolean, name?: string) => void;
+  // This context is being deprecated and is no longer in use.
+  // The properties are kept for type safety in case of residual imports,
+  // but the functionality has been removed.
+  isIRCLeaderMode: boolean; // Always false
+  ircLeaderName: string; // Always empty
+  setIRCLeaderMode: (active: boolean, name?: string) => void; // No-op
 }
 
 const IRCLeaderContext = createContext<IRCLeaderContextType | undefined>(undefined);
 
 export function IRCLeaderProvider({ children }: { children: ReactNode }) {
-  const [isIRCLeaderMode, setIsIRCLeaderMode] = useState(false);
-  const [ircLeaderName, setIrcLeaderName] = useState('');
-
-  const setIRCLeaderMode = (active: boolean, name: string = 'Commander') => {
-    setIsIRCLeaderMode(active);
-    setIrcLeaderName(active ? name : '');
-  };
-
   return (
-    <IRCLeaderContext.Provider value={{ isIRCLeaderMode, ircLeaderName, setIRCLeaderMode }}>
+    <IRCLeaderContext.Provider value={{ isIRCLeaderMode: false, ircLeaderName: '', setIRCLeaderMode: () => {} }}>
       {children}
     </IRCLeaderContext.Provider>
   );
 }
 
 export function useIRCLeader() {
-  const context = useContext(IRCLeaderContext);
-  if (!context) {
-    throw new Error('useIRCLeader must be used within IRCLeaderProvider');
-  }
-  return context;
+  return useContext(IRCLeaderContext)!;
 }

@@ -44,15 +44,10 @@ export function RoleSwitcher({ onRoleChange }: RoleSwitcherProps) {
   const SelectedIcon = iconMap[selectedRoleData?.icon || 'Crown'];
 
   const handleRoleSelect = (role: UserRole) => {
-    // If switching to a different role while verified, logout and trigger verification
-    if (isVerified && role !== currentRole) {
-      setIsVerified(false);
-      setPendingRole(role);
-      // Trigger verification modal for the new role
-      onRoleChange?.(role);
-    } else {
-      setPendingRole(role);
-    }
+    // Always set the new role as pending and trigger the verification flow.
+    setIsVerified(false);
+    setPendingRole(role);
+    onRoleChange?.(role);
   };
 
   return (

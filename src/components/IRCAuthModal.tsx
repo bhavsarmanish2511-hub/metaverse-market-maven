@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Fingerprint, ScanFace, Mic, Atom, CheckCircle, Loader2, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Fingerprint, ScanFace, Mic, Atom, CheckCircle, Loader2, Zap, User } from 'lucide-react';
 import irisScanImage from '@/assets/iris-scan.png';
 import { playSoothingAlertTone } from '@/lib/alertSound';
 
@@ -210,12 +210,12 @@ export function IRCAuthModal({ open, onClose, onSuccess }: IRCAuthModalProps) {
                           opacity,
                           zIndex,
                         }}
-                        onClick={() => !isCenter && selectBiometric(option.realIndex)}
+                        onClick={() => (isCenter ? handleAuthenticate() : selectBiometric(option.realIndex))}
                       >
                         <div 
                           className={`flex flex-col items-center gap-2 p-5 rounded-xl border transition-all duration-500 ${
                             isCenter 
-                              ? 'border-login-glow bg-login-glow/10 shadow-[0_0_25px_rgba(43,208,255,0.4)]' 
+                              ? 'border-login-glow bg-login-glow/10 shadow-[0_0_25px_rgba(43,208,255,0.4)] cursor-pointer' 
                               : 'border-login-glow/20 bg-login-panel/30 hover:border-login-glow/50'
                           }`}
                         >

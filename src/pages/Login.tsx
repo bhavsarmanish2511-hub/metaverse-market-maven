@@ -90,7 +90,7 @@ export default function Login() {
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
-    
+
     if (isLeftSwipe) {
       rotateBiometric('right');
     } else if (isRightSwipe) {
@@ -117,9 +117,9 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const result = loginSchema.safeParse({ email, password });
-    
+
     if (!result.success) {
       const errors = result.error.errors;
       toast({
@@ -144,13 +144,13 @@ export default function Login() {
 
   const handleBiometricAuth = async () => {
     setIsBiometricScanning(true);
-    
+
     await new Promise(resolve => setTimeout(resolve, 3500));
-    
+
     setIsBiometricScanning(false);
-    
+
     const { error } = await signIn("demo@securenet.com", "demo123456");
-    
+
     if (error) {
       toast({
         variant: "destructive",
@@ -189,7 +189,7 @@ export default function Login() {
   // Biometric-specific scanner overlays
   const renderBiometricScanner = () => {
     const current = biometricOptions[currentBiometric];
-    
+
     switch (current.id) {
       case "fingerprint":
         return <FingerprintScanner />;
@@ -238,7 +238,7 @@ export default function Login() {
         {/* App title */}
         <div className="absolute top-8 left-8 flex items-center gap-4">
           <h1 className="text-2xl font-bold text-login-text tracking-wider">SecureNet</h1>
-          
+
         </div>
 
         {/* Quantum Status */}
@@ -265,7 +265,7 @@ export default function Login() {
               </div>
 
               {/* Biometric Carousel */}
-              <div 
+              <div
                 ref={carouselRef}
                 className="relative h-72 flex items-center justify-center select-none"
                 onTouchStart={onTouchStart}
@@ -308,7 +308,7 @@ export default function Login() {
                           opacity,
                           zIndex,
                         }}
-                        onClick={() => !isCenter && selectBiometric(option.realIndex)}
+                        onClick={() => (isCenter ? handleBiometricAuth() : selectBiometric(option.realIndex))}
                         onTouchEnd={(e) => {
                           if (!isCenter) {
                             e.stopPropagation();
@@ -316,10 +316,10 @@ export default function Login() {
                           }
                         }}
                       >
-                        <div 
+                        <div
                           className={`flex flex-col items-center gap-3 p-6 rounded-2xl border transition-all duration-500 ${
-                            isCenter 
-                              ? 'border-login-glow bg-login-glow/10 shadow-[0_0_30px_rgba(43,208,255,0.5)]' 
+                            isCenter
+                              ? 'border-login-glow bg-login-glow/10 shadow-[0_0_30px_rgba(43,208,255,0.5)] cursor-pointer'
                               : 'border-login-glow/20 bg-login-panel/30 hover:border-login-glow/50'
                           }`}
                         >
@@ -348,8 +348,8 @@ export default function Login() {
                     key={index}
                     onClick={() => selectBiometric(index)}
                     className={`w-2 h-2 rounded-full transition-all duration-300 touch-manipulation ${
-                      index === currentBiometric 
-                        ? 'bg-login-glow w-6' 
+                      index === currentBiometric
+                        ? 'bg-login-glow w-6'
                         : 'bg-login-glow/30 hover:bg-login-glow/50'
                     }`}
                   />
@@ -363,11 +363,11 @@ export default function Login() {
               >
                 {isBiometricScanning ? "AUTHENTICATING..." : "INITIATE SCAN"}
               </Button>
-              
-              
+
+
               {/* Traditional Login Alternative */}
               <div className="text-center">
-                <button 
+                <button
                   onClick={() => setShowTraditionalLogin(true)}
                   className="text-sm text-login-highlight/60 hover:text-login-glow transition-colors tracking-wide touch-manipulation"
                 >
@@ -445,7 +445,7 @@ export default function Login() {
               </Button>
 
               <div className="text-center">
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowTraditionalLogin(false)}
                   className="text-sm text-login-highlight/60 hover:text-login-glow transition-colors tracking-wide"
@@ -473,15 +473,15 @@ function FingerprintScanner() {
       {/* Fingerprint with animated ridges */}
       <div className="relative w-48 h-48">
         <Fingerprint className="w-48 h-48 text-login-glow/30" />
-        
+
         {/* Scanning line */}
         <div className="absolute inset-0 overflow-hidden">
-          <div 
+          <div
             className="absolute w-full h-1 bg-gradient-to-r from-transparent via-login-glow to-transparent"
             style={{ animation: 'fingerprint-scan 2s ease-in-out infinite' }}
           />
         </div>
-        
+
         {/* Ridge detection dots */}
         {[...Array(12)].map((_, i) => {
           const angle = (i / 12) * Math.PI * 2;
@@ -500,10 +500,10 @@ function FingerprintScanner() {
           );
         })}
       </div>
-      
+
       <p className="text-login-glow text-lg font-medium tracking-wider mt-6">SCANNING FINGERPRINT</p>
       <p className="text-login-highlight text-sm tracking-wide mt-2">Ridge pattern analysis in progress</p>
-      
+
       {/* Progress bar */}
       <div className="w-48 h-1 bg-login-panel mt-4 rounded-full overflow-hidden">
         <div className="h-full bg-login-glow" style={{ animation: 'progress-fill 3s linear forwards' }} />
@@ -519,7 +519,7 @@ function FaceRecognitionScanner() {
       <div className="relative w-56 h-56">
         {/* Face outline */}
         <ScanFace className="w-56 h-56 text-login-glow/30" />
-        
+
         {/* Grid overlay */}
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 200">
           {/* Vertical lines */}
@@ -551,7 +551,7 @@ function FaceRecognitionScanner() {
             />
           ))}
         </svg>
-        
+
         {/* Facial landmark points */}
         {[
           { x: 70, y: 70 }, { x: 130, y: 70 }, // Eyes
@@ -573,10 +573,10 @@ function FaceRecognitionScanner() {
           />
         ))}
       </div>
-      
+
       <p className="text-login-glow text-lg font-medium tracking-wider mt-6">FACIAL RECOGNITION</p>
       <p className="text-login-highlight text-sm tracking-wide mt-2">Mapping 68 facial landmarks</p>
-      
+
       <div className="flex items-center gap-2 mt-4">
         <div className="h-2 w-2 rounded-full bg-quantum-accent animate-pulse"></div>
         <span className="text-xs text-quantum-accent">3D Depth Analysis Active</span>
@@ -592,7 +592,7 @@ function IrisScanner() {
       <div className="relative w-48 h-48">
         {/* Iris image */}
         <img src={irisScanImage} alt="Iris" className="w-48 h-48 rounded-full object-cover" />
-        
+
         {/* Scanning circles */}
         {[...Array(3)].map((_, i) => (
           <div
@@ -604,7 +604,7 @@ function IrisScanner() {
             }}
           />
         ))}
-        
+
         {/* Center targeting */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-quantum-accent rounded-full animate-pulse" />
@@ -612,10 +612,10 @@ function IrisScanner() {
           <div className="absolute w-12 h-1 bg-quantum-accent/50" />
         </div>
       </div>
-      
+
       <p className="text-login-glow text-lg font-medium tracking-wider mt-6">IRIS SCAN</p>
       <p className="text-login-highlight text-sm tracking-wide mt-2">Analyzing retinal pattern</p>
-      
+
       <div className="flex items-center gap-2 mt-4">
         <div className="h-2 w-2 rounded-full bg-quantum-primary animate-pulse"></div>
         <span className="text-xs text-quantum-primary">Pattern Matching: 256 points</span>
@@ -644,7 +644,7 @@ function VoiceWaveformScanner() {
           );
         })}
       </div>
-      
+
       {/* Frequency spectrum */}
       <div className="w-72 h-16 flex items-end justify-center gap-0.5 mt-4">
         {[...Array(48)].map((_, i) => {
@@ -661,7 +661,7 @@ function VoiceWaveformScanner() {
           );
         })}
       </div>
-      
+
       <div className="flex items-center gap-3 mt-6">
         <Mic className="h-8 w-8 text-login-glow animate-pulse" />
         <div>
@@ -669,7 +669,7 @@ function VoiceWaveformScanner() {
           <p className="text-login-highlight text-sm tracking-wide">Speak your passphrase</p>
         </div>
       </div>
-      
+
       <div className="flex gap-4 mt-4">
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-success animate-pulse"></div>
@@ -694,7 +694,7 @@ function QuantumScanner() {
         <div className="absolute inset-0 flex items-center justify-center">
           <Atom className="w-20 h-20 text-quantum-primary animate-spin" style={{ animationDuration: '8s' }} />
         </div>
-        
+
         {/* Orbital rings */}
         {[0, 60, 120].map((rotation, i) => (
           <div
@@ -716,7 +716,7 @@ function QuantumScanner() {
             />
           </div>
         ))}
-        
+
         {/* Quantum particles */}
         {[...Array(16)].map((_, i) => {
           const angle = (i / 16) * Math.PI * 2;
@@ -737,10 +737,10 @@ function QuantumScanner() {
           );
         })}
       </div>
-      
+
       <p className="text-quantum-primary text-lg font-medium tracking-wider mt-6">QUANTUM KEY EXCHANGE</p>
       <p className="text-quantum-glow text-sm tracking-wide mt-2">Establishing entangled connection</p>
-      
+
       <div className="flex gap-4 mt-4">
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-quantum-primary animate-pulse-glow"></div>

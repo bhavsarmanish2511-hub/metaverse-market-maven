@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Info, AlertCircle, Fingerprint } from "lucide-react";
+import { AlertTriangle, Info, AlertCircle, Fingerprint, Target, Shield } from "lucide-react";
 import { Alert } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +8,19 @@ interface AlertCardProps {
   alert: Alert;
   onClick?: () => void;
 }
+
+const getRoleBadge = (targetRole?: string) => {
+  switch (targetRole) {
+    case 'irc_leader':
+      return { icon: Fingerprint, label: 'IRC Leader', color: 'bg-primary/10 border-primary/30 text-primary' };
+    case 'analyst':
+      return { icon: Shield, label: 'Ops Analyst', color: 'bg-soc/10 border-soc/30 text-soc' };
+    case 'offensive_tester':
+      return { icon: Target, label: 'Offensive Tester', color: 'bg-warning/10 border-warning/30 text-warning' };
+    default:
+      return null;
+  }
+};
 
 export function AlertCard({ alert, onClick }: AlertCardProps) {
   const getIcon = () => {
@@ -38,13 +51,15 @@ export function AlertCard({ alert, onClick }: AlertCardProps) {
       : 'bg-noc/10 text-noc border-noc/20';
   };
 
-  const isClickable = alert.requiresIRCLeader && onClick;
+  const isClickable = alert.targetRole && onClick;
+  const roleBadge = getRoleBadge(alert.targetRole);
 
   return (
     <Card 
       className={cn(
         "hover:shadow-lg transition-smooth border-border hover:border-primary/50",
-        isClickable && "cursor-pointer hover:scale-[1.02] ring-2 ring-error/30 animate-pulse"
+        isClickable && "cursor-pointer hover:scale-[1.02]",
+        isClickable && alert.type === 'critical' && "ring-2 ring-error/30 animate-pulse"
       )}
       onClick={isClickable ? onClick : undefined}
     >
@@ -59,10 +74,10 @@ export function AlertCard({ alert, onClick }: AlertCardProps) {
               </p>
             </div>
           </div>
-          {alert.requiresIRCLeader && (
-            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 border border-primary/30">
-              <Fingerprint className="h-3 w-3 text-primary" />
-              <span className="text-xs text-primary font-medium">IRC Leader</span>
+          {roleBadge && (
+            <div className={cn("flex items-center gap-1 px-2 py-1 rounded-full border", roleBadge.color)}>
+              <roleBadge.icon className="h-3 w-3" />
+              <span className="text-xs font-medium">{roleBadge.label}</span>
             </div>
           )}
         </div>

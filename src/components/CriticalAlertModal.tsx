@@ -7,7 +7,7 @@ import { playSoothingAlertTone } from '@/lib/alertSound';
 
 interface CriticalAlertModalProps {
   open: boolean;
-  onClose: () => void;
+  onClose: (acknowledged: boolean) => void;
   alertTitle: string;
   alertDescription: string;
   roleLabel?: string;
@@ -22,14 +22,14 @@ export function CriticalAlertModal({ open, onClose, alertTitle, alertDescription
       // Play soothing alert tone instead of voice
       playSoothingAlertTone('critical');
     }
-    
+
     if (!open) {
       setIsAnnouncing(false);
     }
   }, [open, alertTitle, alertDescription, isAnnouncing]);
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose(false)}>
       <DialogContent className="sm:max-w-lg border-error/50 bg-background/95 backdrop-blur-xl p-0 overflow-hidden">
         {/* Red alert header */}
         <div className="bg-error/20 border-b border-error/30 p-4">
@@ -67,11 +67,17 @@ export function CriticalAlertModal({ open, onClose, alertTitle, alertDescription
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button 
-              onClick={onClose} 
+            <Button
+              onClick={() => onClose(false)}
+              variant="outline"
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => onClose(true)}
               className="flex-1 bg-error hover:bg-error/90 text-error-foreground"
             >
-              <X className="h-4 w-4 mr-2" />
               Acknowledge Alert
             </Button>
           </div>

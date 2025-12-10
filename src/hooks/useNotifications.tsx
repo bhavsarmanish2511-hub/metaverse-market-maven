@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { offensiveTesterAlerts } from '@/lib/offensiveTesterAlertData';
 
 export interface Notification {
   id: string;
@@ -8,6 +9,8 @@ export interface Notification {
   time: string;
   read: boolean;
   timestamp: Date;
+  requiredRole?: string;
+  alertId?: string;
 }
 
 export interface NotificationPreferences {
@@ -52,14 +55,34 @@ const formatTimeAgo = (date: Date): string => {
   return `${Math.floor(diffHours / 24)} day${Math.floor(diffHours / 24) > 1 ? 's' : ''} ago`;
 };
 
+// Get the latest critical alert from Offensive Tester
+const getOffensiveTesterCriticalAlert = (): Notification => {
+  const latestAlert = offensiveTesterAlerts.find(a => a.severity === 'critical') || offensiveTesterAlerts[0];
+  return {
+    id: `ot-${latestAlert.id}`,
+    type: 'critical',
+    title: latestAlert.title,
+    message: latestAlert.businessImpact,
+    time: 'Just now',
+    read: false,
+    timestamp: new Date(latestAlert.timestamp),
+    requiredRole: 'Offensive Tester',
+    alertId: latestAlert.id,
+  };
+};
+
 export function useNotifications() {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    { id: '1', type: 'critical', title: 'Critical Alert', message: 'DDoS attack detected on edge servers', time: '2 min ago', read: false, timestamp: new Date(Date.now() - 120000) },
-    { id: '2', type: 'warning', title: 'Security Warning', message: 'Multiple failed login attempts from IP 192.168.1.45', time: '15 min ago', read: false, timestamp: new Date(Date.now() - 900000) },
-    { id: '3', type: 'info', title: 'System Update', message: 'Firewall rules updated successfully', time: '1 hour ago', read: false, timestamp: new Date(Date.now() - 3600000) },
-    { id: '4', type: 'success', title: 'Threat Neutralized', message: 'Malware quarantined on endpoint-042', time: '2 hours ago', read: true, timestamp: new Date(Date.now() - 7200000) },
-    { id: '5', type: 'warning', title: 'Anomaly Detected', message: 'Unusual outbound traffic from Finance dept', time: '3 hours ago', read: true, timestamp: new Date(Date.now() - 10800000) },
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
+    const offensiveTesterAlert = getOffensiveTesterCriticalAlert();
+    return [
+      offensiveTesterAlert,
+      { id: '1', type: 'critical', title: 'Critical Alert', message: 'DDoS attack detected on edge servers', time: '2 min ago', read: false, timestamp: new Date(Date.now() - 120000), requiredRole: 'IRC Leader' },
+      { id: '2', type: 'warning', title: 'Security Warning', message: 'Multiple failed login attempts from IP 192.168.1.45', time: '15 min ago', read: false, timestamp: new Date(Date.now() - 900000) },
+      { id: '3', type: 'info', title: 'System Update', message: 'Firewall rules updated successfully', time: '1 hour ago', read: false, timestamp: new Date(Date.now() - 3600000) },
+      { id: '4', type: 'success', title: 'Threat Neutralized', message: 'Malware quarantined on endpoint-042', time: '2 hours ago', read: true, timestamp: new Date(Date.now() - 7200000) },
+      { id: '5', type: 'warning', title: 'Anomaly Detected', message: 'Unusual outbound traffic from Finance dept', time: '3 hours ago', read: true, timestamp: new Date(Date.now() - 10800000) },
+    ];
+  });
 
   const [preferences, setPreferences] = useState<NotificationPreferences>(() => {
     const saved = localStorage.getItem('notificationPreferences');
@@ -102,7 +125,8 @@ export function useNotifications() {
     return () => clearInterval(interval);
   }, [preferences]);
 
-  const unreadCount = notifications.filter(n => !n.read && preferences[n.type]).length;
+  // Always ensure at least 1 unread critical alert (the offensive tester alert)
+  const unreadCount = Math.max(1, notifications.filter(n => !n.read && preferences[n.type]).length);
 
   const filteredNotifications = notifications.filter(n => preferences[n.type]);
 

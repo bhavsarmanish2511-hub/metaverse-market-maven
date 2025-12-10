@@ -2,7 +2,6 @@ import { Shield, Network, Home, Activity, AlertTriangle, Database, FileText, Boo
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useIRCLeader } from "@/contexts/IRCLeaderContext";
 import { useRole } from "@/contexts/RoleContext";
 import { Badge } from "@/components/ui/badge";
 
@@ -69,15 +68,10 @@ export function AppSidebar() {
   const { open } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
-  const { signOut, user } = useAuth();
-  const { isIRCLeaderMode, ircLeaderName, setIRCLeaderMode } = useIRCLeader();
+  const { user } = useAuth();
   const { currentRole, isVerified } = useRole();
 
   const isActive = (path: string) => currentPath === path;
-
-  const handleExitIRCMode = () => {
-    setIRCLeaderMode(false);
-  };
 
   // Only show role-specific sections when verified
   const showAnalystDashboard = isVerified && (currentRole === 'analyst' || currentRole === 'rcc_head');
@@ -105,23 +99,6 @@ export function AppSidebar() {
           </div>
         </div>
 
-        {/* IRC Leader Mode Indicator */}
-        {isIRCLeaderMode && (
-          <div className="p-4 border-b border-error/30 bg-error/10">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-error/20 flex items-center justify-center">
-                <User className="h-4 w-4 text-error" />
-              </div>
-              {open && (
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-error">{ircLeaderName}</p>
-                  <Badge className="bg-error text-error-foreground text-xs">IRC Leader</Badge>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Verification Required Notice */}
         {!isVerified && (
           <div className="p-4 border-b border-warning/30 bg-warning/10">
@@ -144,11 +121,11 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild disabled={isIRCLeaderMode}>
+                <SidebarMenuButton asChild>
                   <NavLink
                     to="/"
                     end
-                    className={`hover:bg-accent ${isIRCLeaderMode ? 'opacity-50 pointer-events-none' : ''}`}
+                    className="hover:bg-accent"
                     activeClassName="bg-accent text-accent-foreground font-medium"
                   >
                     <Home className="h-4 w-4" />
@@ -159,34 +136,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Integrated Analyst Dashboard */}
-        {showAnalystDashboard && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-primary">
-              <Eye className="h-4 w-4" />
-              {open && <span>Operations Center</span>}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {analystItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild disabled={isIRCLeaderMode}>
-                      <NavLink
-                        to={item.url}
-                        className={`hover:bg-primary/10 hover:text-primary ${isIRCLeaderMode ? 'opacity-50 pointer-events-none' : ''}`}
-                        activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary"
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {open && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
 
         {/* Admin Section - RCC Head Only */}
         {showAdmin && (
@@ -204,6 +153,34 @@ export function AppSidebar() {
                         to={item.url}
                         className="hover:bg-warning/10 hover:text-warning"
                         activeClassName="bg-warning/10 text-warning font-medium border-l-2 border-warning"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {open && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Integrated Analyst Dashboard */}
+        {showAnalystDashboard && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-primary">
+              <Eye className="h-4 w-4" />
+              {open && <span>Operations Center</span>}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {analystItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        className="hover:bg-primary/10 hover:text-primary"
+                        activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary"
                       >
                         <item.icon className="h-4 w-4" />
                         {open && <span>{item.title}</span>}
@@ -247,7 +224,7 @@ export function AppSidebar() {
         {/* SOC Components */}
         {showSOC && (
           <SidebarGroup>
-            <SidebarGroupLabel className={`text-soc ${isIRCLeaderMode ? 'opacity-50' : ''}`}>
+            <SidebarGroupLabel className="text-soc">
               <Shield className="h-4 w-4" />
               {open && <span>Security</span>}
             </SidebarGroupLabel>
@@ -255,10 +232,10 @@ export function AppSidebar() {
               <SidebarMenu>
                 {socItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild disabled={isIRCLeaderMode}>
+                    <SidebarMenuButton asChild>
                       <NavLink
                         to={item.url}
-                        className={`hover:bg-soc-muted hover:text-soc ${isIRCLeaderMode ? 'opacity-50 pointer-events-none' : ''} ${
+                        className={`hover:bg-soc-muted hover:text-soc ${
                           (item.url === '/quantum') ? 'hover:bg-quantum-primary/10 hover:text-quantum-primary' : ''
                         }`}
                         activeClassName={`${
@@ -279,7 +256,7 @@ export function AppSidebar() {
         {/* NOC Components */}
         {showNOC && (
           <SidebarGroup>
-            <SidebarGroupLabel className={`text-noc ${isIRCLeaderMode ? 'opacity-50' : ''}`}>
+            <SidebarGroupLabel className="text-noc">
               <Network className="h-4 w-4" />
               {open && <span>Networks</span>}
             </SidebarGroupLabel>
@@ -287,10 +264,10 @@ export function AppSidebar() {
               <SidebarMenu>
                 {nocItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild disabled={isIRCLeaderMode}>
+                    <SidebarMenuButton asChild>
                       <NavLink
                         to={item.url}
-                        className={`hover:bg-noc-muted hover:text-noc ${isIRCLeaderMode ? 'opacity-50 pointer-events-none' : ''} ${
+                        className={`hover:bg-noc-muted hover:text-noc ${
                           (item.url === '/network-topology') ? 'hover:bg-quantum-primary/10 hover:text-quantum-primary' : ''
                         }`}
                         activeClassName={`${
@@ -339,39 +316,6 @@ export function AppSidebar() {
         {/* User Section */}
         <SidebarGroup className="mt-auto border-t border-border">
           <SidebarGroupContent className="p-2">
-            <SidebarMenu>
-              {/* Exit IRC Mode button */}
-              {isIRCLeaderMode && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={handleExitIRCMode}
-                    className="h-10 hover:bg-error/10 rounded-md transition-colors group mb-2"
-                  >
-                    <div className="flex items-center gap-3 w-full">
-                      <LogOut className="h-4 w-4 text-error" />
-                      {open && (
-                        <span className="text-sm font-medium text-error">Exit IRC Mode</span>
-                      )}
-                    </div>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-
-              {/* Microsoft-style Sign Out button */}
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => signOut()}
-                  className="h-10 hover:bg-muted/50 rounded-md transition-colors group"
-                >
-                  <div className="flex items-center gap-3 w-full">
-                    <Server className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                    {open && (
-                      <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Sign out</span>
-                    )}
-                  </div>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

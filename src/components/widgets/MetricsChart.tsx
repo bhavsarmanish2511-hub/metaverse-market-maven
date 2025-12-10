@@ -1,11 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useEffect, useState } from "react";
 import { generateTimeSeriesData, MetricData } from "@/lib/mockData";
 
 interface MetricsChartProps {
   title: string;
-  type?: 'line' | 'area';
+  type?: 'line' | 'area' | 'bar';
   color?: string;
   height?: number;
 }
@@ -57,6 +57,31 @@ export function MetricsChart({ title, type = 'area', color = 'hsl(var(--primary)
                 dot={false}
               />
             </LineChart>
+          ) : type === 'bar' ? (
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis 
+                dataKey="timestamp" 
+                stroke="hsl(var(--muted-foreground))"
+                fontSize={12}
+              />
+              <YAxis 
+                stroke="hsl(var(--muted-foreground))"
+                fontSize={12}
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '6px',
+                }}
+              />
+              <Bar 
+                dataKey="value" 
+                fill={color}
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
           ) : (
             <AreaChart data={data}>
               <defs>

@@ -83,6 +83,8 @@ export function AppLayout() {
       title: "Signed Out",
       description: "You have been signed out successfully.",
     });
+    // Navigate back to the main dashboard
+    navigate('/');
   };
 
   return (

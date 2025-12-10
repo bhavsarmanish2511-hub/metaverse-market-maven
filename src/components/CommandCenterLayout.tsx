@@ -12,21 +12,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useIRCLeader } from "@/contexts/IRCLeaderContext";
 import { useToast } from "@/hooks/use-toast";
 import { RoleSwitcher } from "@/components/header/RoleSwitcher";
 import { NotificationBell } from "@/components/header/NotificationBell";
 import { HoverNavigation } from "@/components/HoverNavigation";
 import { useRole } from "@/contexts/RoleContext";
-import { useNavigate } from "react-router-dom";
-import { User, LogOut, Shield } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { User, Shield, Power } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 export function CommandCenterLayout() {
-  const { setIRCLeaderMode } = useIRCLeader();
+  const { signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { pendingRole, setCurrentRole, isVerified, setIsVerified, roleName } = useRole();
+  const { pendingRole, setCurrentRole, isVerified, setIsVerified, roleName, setShowLoginAlerts } = useRole();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingRoleForAuth, setPendingRoleForAuth] = useState(pendingRole);
 
@@ -53,6 +53,7 @@ export function CommandCenterLayout() {
     setShowAuthModal(false);
     setIsVerified(true);
     setCurrentRole(pendingRoleForAuth);
+    setPendingRoleForAuth(null); // Reset pending role after success
     toast({
       title: "Identity Verified",
       description: `Biometric authentication successful. Access granted as ${getRoleName(pendingRoleForAuth)}.`,
@@ -77,28 +78,19 @@ export function CommandCenterLayout() {
     }
   };
 
-  const handleLogout = () => {
-    setIRCLeaderMode(false);
-    setIsVerified(false);
-    toast({
-      title: "Signed Out",
-      description: "You have been signed out successfully.",
-    });
-  };
-
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
       {/* Header */}
       <header className="sticky top-0 z-10 flex items-center justify-between h-14 md:h-16 px-4 md:px-6 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center gap-2 md:gap-3">
-          <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-primary flex items-center justify-center">
-            <Shield className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
-          </div>
-          <div>
-            <h2 className="font-bold text-sm md:text-lg">SecureNet</h2>
-            <p className="text-[10px] md:text-xs text-muted-foreground hidden sm:block">Powered by HELIOS</p>
-          </div>
-        </div>
+        <Link to="/" className="flex items-center gap-2 md:gap-3">
+            <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-primary flex items-center justify-center">
+              <Shield className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h2 className="font-bold text-sm md:text-lg">SecureNet</h2>
+              <p className="text-[10px] md:text-xs text-muted-foreground hidden sm:block">Powered by HELIOS</p>
+            </div>
+        </Link>
         <div className="flex items-center gap-2 md:gap-3">
           <NotificationBell />
           <div className="hidden sm:block">
@@ -126,6 +118,15 @@ export function CommandCenterLayout() {
 
           <ThemeToggle />
 
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={signOut}
+            className="h-8 w-8 text-error/70 hover:text-error hover:bg-error/10 rounded-full transition-all duration-300 hover:shadow-[0_0_15px_rgba(239,68,68,0.4)]"
+            title="Logout"
+          >
+            <Power className="h-4 w-4" />
+          </Button>
           {/* User Profile - Show when verified */}
           {isVerified && (
             <DropdownMenu>
@@ -156,11 +157,6 @@ export function CommandCenterLayout() {
                 <DropdownMenuItem className="gap-2">
                   <User className="h-4 w-4" />
                   View Profile
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="gap-2 text-destructive focus:text-destructive">
-                  <LogOut className="h-4 w-4" />
-                  Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
