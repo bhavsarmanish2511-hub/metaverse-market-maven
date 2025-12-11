@@ -998,102 +998,156 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                 Resolution Impact Analysis
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 pt-0">
+            <CardContent className="pt-0 h-[calc(100%-60px)]">
               {!impactMetrics ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <BarChart3 className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                  <BarChart3 className="h-10 w-10 mb-3 opacity-30" />
                   <p className="text-sm">No impact data available</p>
                   <p className="text-xs">Execute strategies to see impact analysis</p>
                 </div>
               ) : (
-                <>
-                  {/* Key Metrics */}
-                  <div className="grid grid-cols-6 gap-2">
-                    <div className="text-center p-2 rounded bg-success/5 border border-success/20">
-                      <p className="text-lg font-bold text-success">{impactMetrics.serviceRestoration}%</p>
-                      <p className="text-xs text-muted-foreground">Restored</p>
+                <div className="grid grid-cols-12 gap-4 h-full">
+                  {/* Left Column - Key Metrics */}
+                  <div className="col-span-8 flex flex-col gap-4">
+                    {/* Primary Metrics Row */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="p-4 rounded-lg bg-gradient-to-br from-success/10 to-success/5 border border-success/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-success/80">Service Restoration</span>
+                          <CheckCircle className="h-4 w-4 text-success" />
+                        </div>
+                        <p className="text-3xl font-bold text-success">{impactMetrics.serviceRestoration}%</p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-primary/80">Revenue Protected</span>
+                          <DollarSign className="h-4 w-4 text-primary" />
+                        </div>
+                        <p className="text-3xl font-bold text-primary">{impactMetrics.revenueProtected}</p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-gradient-to-br from-success/10 to-success/5 border border-success/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-success/80">SLA Compliance</span>
+                          <Shield className="h-4 w-4 text-success" />
+                        </div>
+                        <p className="text-3xl font-bold text-success">{impactMetrics.slaCompliance}%</p>
+                      </div>
                     </div>
-                    <div className="text-center p-2 rounded bg-muted/10 border border-border/20">
-                      <p className="text-lg font-bold">{impactMetrics.transactionsRecovered.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">Transactions</p>
+
+                    {/* Secondary Metrics Row */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="p-3 rounded-lg border border-border/30 bg-muted/5">
+                        <p className="text-xs text-muted-foreground mb-1">Transactions Recovered</p>
+                        <p className="text-xl font-bold">{impactMetrics.transactionsRecovered.toLocaleString()}</p>
+                      </div>
+                      <div className="p-3 rounded-lg border border-border/30 bg-muted/5">
+                        <p className="text-xs text-muted-foreground mb-1">Mean Time to Resolve</p>
+                        <p className="text-xl font-bold">{impactMetrics.mttr}</p>
+                      </div>
+                      <div className="p-3 rounded-lg border border-border/30 bg-muted/5">
+                        <p className="text-xs text-muted-foreground mb-1">Users Resolved</p>
+                        <p className="text-xl font-bold">{impactMetrics.affectedUsersResolved}%</p>
+                      </div>
                     </div>
-                    <div className="text-center p-2 rounded bg-muted/10 border border-border/20">
-                      <p className="text-lg font-bold">{impactMetrics.revenueProtected}</p>
-                      <p className="text-xs text-muted-foreground">Revenue</p>
-                    </div>
-                    <div className="text-center p-2 rounded bg-success/5 border border-success/20">
-                      <p className="text-lg font-bold text-success">{impactMetrics.slaCompliance}%</p>
-                      <p className="text-xs text-muted-foreground">SLA</p>
-                    </div>
-                    <div className="text-center p-2 rounded bg-muted/10 border border-border/20">
-                      <p className="text-lg font-bold">{impactMetrics.mttr}</p>
-                      <p className="text-xs text-muted-foreground">MTTR</p>
-                    </div>
-                    <div className="text-center p-2 rounded bg-success/5 border border-success/20">
-                      <p className="text-lg font-bold text-success">{impactMetrics.affectedUsersResolved}%</p>
-                      <p className="text-xs text-muted-foreground">Users</p>
+
+                    {/* Resolution Status Grid */}
+                    <div className="flex-1 grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-lg border border-success/20 bg-success/5 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center shrink-0">
+                          <CheckCircle className="h-4 w-4 text-success" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">Payment APIs Restored</p>
+                          <p className="text-xs text-muted-foreground">US-West-2 fully operational</p>
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-lg border border-success/20 bg-success/5 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center shrink-0">
+                          <CheckCircle className="h-4 w-4 text-success" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">Database Failover Complete</p>
+                          <p className="text-xs text-muted-foreground">Replication lag at 145ms</p>
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-lg border border-success/20 bg-success/5 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center shrink-0">
+                          <CheckCircle className="h-4 w-4 text-success" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">Traffic Steering Active</p>
+                          <p className="text-xs text-muted-foreground">96.7% routed to healthy region</p>
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-lg border border-border/30 bg-muted/5 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">DNS Propagation</p>
+                          <p className="text-xs text-muted-foreground">3.3% may need cache clear</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Resolution Summary */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex items-center gap-2 p-2.5 rounded bg-success/5 border border-success/10">
-                      <CheckCircle className="h-4 w-4 text-success shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">Systems Restored</p>
-                        <p className="text-xs text-muted-foreground truncate">Payment APIs in US-West-2</p>
+                  {/* Right Column - Comparison */}
+                  <div className="col-span-4 flex flex-col gap-4">
+                    <div className="flex-1 p-4 rounded-lg border border-success/20 bg-gradient-to-b from-success/5 to-transparent">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Brain className="h-4 w-4 text-success" />
+                        <span className="text-sm font-semibold text-success">HELIOS Automated</span>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">Resolution Time</span>
+                          <span className="text-sm font-semibold">{impactMetrics.mttr}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">Recovery Rate</span>
+                          <span className="text-sm font-semibold text-success">97.3%</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">Human Intervention</span>
+                          <span className="text-sm font-semibold">Minimal</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">Cost Avoidance</span>
+                          <span className="text-sm font-semibold text-success">$1.8M</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 p-2.5 rounded bg-success/5 border border-success/10">
-                      <CheckCircle className="h-4 w-4 text-success shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">DB Failover Done</p>
-                        <p className="text-xs text-muted-foreground truncate">Lag at 145ms</p>
+                    <div className="flex-1 p-4 rounded-lg border border-border/30 bg-muted/5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-semibold text-muted-foreground">Manual Process</span>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 p-2.5 rounded bg-success/5 border border-success/10">
-                      <CheckCircle className="h-4 w-4 text-success shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">Traffic Steering</p>
-                        <p className="text-xs text-muted-foreground truncate">96.7% to healthy region</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 p-2.5 rounded bg-muted/10 border border-border/20">
-                      <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">DNS Propagation</p>
-                        <p className="text-xs text-muted-foreground truncate">3.3% may need cache clear</p>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">Resolution Time</span>
+                          <span className="text-sm font-semibold text-muted-foreground">45-60 min</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">Recovery Rate</span>
+                          <span className="text-sm font-semibold text-muted-foreground">~85%</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">Human Intervention</span>
+                          <span className="text-sm font-semibold text-muted-foreground">Extensive</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">Estimated Loss</span>
+                          <span className="text-sm font-semibold text-error">$2.4M</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* HELIOS vs Manual */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded bg-muted/10 border border-border/20">
-                      <p className="text-sm font-medium text-foreground/80 mb-2">HELIOS Automated</p>
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <p>• Resolution: {impactMetrics.mttr}</p>
-                        <p>• Decision: 8.5 seconds</p>
-                        <p>• Human Touchpoints: 2</p>
-                      </div>
-                    </div>
-                    <div className="p-3 rounded bg-muted/5 border border-border/10">
-                      <p className="text-sm font-medium text-muted-foreground mb-2">Traditional Manual</p>
-                      <div className="text-sm text-muted-foreground/70 space-y-1">
-                        <p>• Resolution: 45+ min</p>
-                        <p>• Decision: 23 min</p>
-                        <p>• Human Touchpoints: 12+</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-2.5 rounded bg-success/5 border border-success/20 text-center">
-                    <p className="text-success text-sm font-medium">68% Faster Resolution with HELIOS</p>
-                  </div>
-                </>
+                </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
+
       </Tabs>
 
       {/* Deep Dive Dialog */}
@@ -1160,197 +1214,262 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
         </DialogContent>
       </Dialog>
 
-      {/* War Room Dialog - Bigger */}
+      {/* War Room Dialog - Unified Professional Layout */}
       <Dialog open={warRoomOpen} onOpenChange={(open) => !open && handleReturnToDashboard()}>
-        <DialogContent className="max-w-[95vw] w-[1400px] h-[90vh] flex flex-col">
-          <DialogHeader className="pb-4 border-b border-border/30">
-            <DialogTitle className="flex items-center gap-3 text-xl">
-              <Brain className="h-6 w-6 text-primary" />
-              HELIOS War Room Coordination
-            </DialogTitle>
-            <DialogDescription className="text-sm">
-              Assembling on-call roster for rapid decision-making and strategy simulation.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="absolute top-4 right-12 flex items-center gap-0">
-            <Button variant="ghost" size="icon" onClick={handleMinimizeWarRoom} className="text-muted-foreground h-8 w-8">
-              <Minus className="h-4 w-4" />
-            </Button>
+        <DialogContent className="max-w-[95vw] w-[1400px] h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 bg-muted/5 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Brain className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">HELIOS War Room Coordination</h2>
+                <p className="text-xs text-muted-foreground">Real-time incident response coordination & strategy simulation</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {warRoomActive && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/30">
+                  <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                  <span className="text-sm font-medium text-success">Live</span>
+                  <span className="text-sm font-mono text-success">{decisionTime}s</span>
+                </div>
+              )}
+              <Button variant="ghost" size="icon" onClick={handleMinimizeWarRoom} className="text-muted-foreground h-8 w-8">
+                <Minus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden pt-4">
-            {/* Left: War Room Bridge Assembly */}
-            <div className="space-y-3 overflow-hidden">
-              <h4 className="text-sm font-semibold flex items-center gap-2 text-foreground">
-                <PhoneCall className="h-4 w-4 text-primary" />
-                Bridge Assembly
-              </h4>
-              <div className="space-y-2 max-h-[calc(100%-100px)] overflow-y-auto pr-1">
-                {Object.entries(typeConfig).map(([typeKey, config]) => (
-                  <div key={typeKey} className="mb-3">
-                    <h5 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">{config.icon} {config.name}</h5>
-                    {participants.filter(p => p.type === typeKey).map((person) => {
-                      const currentStatus = statusConfig[person.status];
-                      return (
-                        <div key={person.id} className={cn("flex items-center gap-3 p-2.5 rounded-lg border mb-2", currentStatus.color, person.status === 'pending' && "opacity-60")}>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate text-sm">{person.name}</div>
-                            <div className="text-xs text-muted-foreground truncate">{person.role}</div>
-                          </div>
-                          <Badge variant="outline" className={cn("text-xs px-2 py-0.5 gap-1", currentStatus.color)}>
-                            {currentStatus.icon}
-                            {currentStatus.text}
-                          </Badge>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-              {!warRoomActive && !isAssembling && (
-                <Button size="default" className="w-full gap-2 text-sm h-10" onClick={warRoomActions.startCallingSequence}>
-                  <PhoneCall className="h-4 w-4" />
-                  Assemble Bridge
-                </Button>
-              )}
-            </div>
-
-            {/* Middle: Strategy Simulation - Only visible when war room active */}
-            <div className="space-y-3 overflow-hidden lg:col-span-1">
-              <h4 className="text-sm font-semibold flex items-center gap-2 text-foreground">
-                <Target className="h-4 w-4 text-primary" />
-                Strategy Simulation
-              </h4>
-              {warRoomActive ? (
-                <div className="space-y-3 max-h-[calc(100%-60px)] overflow-y-auto pr-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Select strategies to simulate:</span>
-                    <Badge variant="outline" className="text-xs">{selectedStrategies.length} selected</Badge>
-                  </div>
-                  {alert.details.aiRecommendations.slice(0, 4).map((rec, i) => {
-                    const details = getStrategyDetails(rec);
-                    const isSelected = selectedStrategies.includes(rec);
-                    // Generate mock strategy metrics
-                    const recoveryRate = [96.7, 94.2, 91.8, 89.5][i] || 90;
-                    const probability = details.confidence;
-                    const estimatedTime = ['8 min', '12 min', '15 min', '18 min'][i] || '10 min';
-                    const riskLevel = probability > 93 ? 'Low' : probability > 88 ? 'Medium' : 'High';
+          {/* Main Content - Single Scrollable Area */}
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="space-y-6">
+              {/* Bridge Assembly Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <PhoneCall className="h-4 w-4 text-primary" />
+                    Bridge Assembly
+                  </h3>
+                  {!warRoomActive && !isAssembling && (
+                    <Button size="sm" className="gap-2 h-8 text-xs" onClick={warRoomActions.startCallingSequence}>
+                      <PhoneCall className="h-3.5 w-3.5" />
+                      Assemble Bridge
+                    </Button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {participants.map((person) => {
+                    const currentStatus = statusConfig[person.status];
                     return (
-                      <div key={i} className={cn(
-                        "p-3 rounded-lg border cursor-pointer transition-all",
-                        isSelected ? "border-success/50 bg-success/10" : "border-border/50 hover:border-primary/30 hover:bg-muted/20"
-                      )} onClick={() => handleStrategyToggle(rec)}>
-                        <div className="flex items-start gap-3">
-                          <Checkbox checked={isSelected} className="mt-1 h-4 w-4" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="font-semibold text-sm">{details.title}</span>
-                            </div>
-                            <div className="grid grid-cols-4 gap-2 mt-2">
-                              <div className="text-center p-1.5 rounded bg-muted/30">
-                                <p className="text-sm font-bold text-primary">{probability}%</p>
-                                <p className="text-[10px] text-muted-foreground">Probability</p>
-                              </div>
-                              <div className="text-center p-1.5 rounded bg-muted/30">
-                                <p className="text-sm font-bold text-success">{recoveryRate}%</p>
-                                <p className="text-[10px] text-muted-foreground">Recovery</p>
-                              </div>
-                              <div className="text-center p-1.5 rounded bg-muted/30">
-                                <p className="text-sm font-bold">{estimatedTime}</p>
-                                <p className="text-[10px] text-muted-foreground">Est. Time</p>
-                              </div>
-                              <div className="text-center p-1.5 rounded bg-muted/30">
-                                <p className={cn("text-sm font-bold", riskLevel === 'Low' ? 'text-success' : riskLevel === 'Medium' ? 'text-muted-foreground' : 'text-error')}>{riskLevel}</p>
-                                <p className="text-[10px] text-muted-foreground">Risk</p>
-                              </div>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{details.howItWorks}</p>
-                          </div>
+                      <div key={person.id} className={cn(
+                        "flex items-center gap-3 p-3 rounded-lg border transition-all",
+                        person.status === 'joined' && "border-success/30 bg-success/5",
+                        person.status === 'calling' && "border-primary/30 bg-primary/5",
+                        person.status === 'joining' && "border-primary/20 bg-primary/5",
+                        person.status === 'pending' && "border-border/30 bg-muted/10 opacity-60"
+                      )}>
+                        <div className={cn(
+                          "w-9 h-9 rounded-full flex items-center justify-center shrink-0",
+                          person.status === 'joined' && "bg-success/20",
+                          person.status === 'calling' && "bg-primary/20",
+                          person.status === 'joining' && "bg-primary/20",
+                          person.status === 'pending' && "bg-muted"
+                        )}>
+                          {person.status === 'joined' ? (
+                            <CheckCircle className="h-4 w-4 text-success" />
+                          ) : person.status === 'calling' || person.status === 'joining' ? (
+                            <PhoneCall className="h-4 w-4 text-primary animate-pulse" />
+                          ) : (
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                          )}
                         </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{person.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{person.role}</p>
+                        </div>
+                        <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 shrink-0", currentStatus.color)}>
+                          {currentStatus.text}
+                        </Badge>
                       </div>
                     );
                   })}
-                  <Button size="default" onClick={handleSimulateStrategies} disabled={selectedStrategies.length === 0 || simulationRunning} className="w-full gap-2 text-sm h-10">
-                    {simulationRunning ? <><Loader2 className="h-4 w-4 animate-spin" />Simulating...</> : <><Play className="h-4 w-4" />Simulate Selected Strategies</>}
-                  </Button>
-                  {showSimulationResults && simulationResults && (
-                    <Card className="border-success/30 bg-success/5">
-                      <CardContent className="p-3 space-y-3">
-                        <h5 className="text-sm font-semibold text-success">Simulation Results</h5>
-                        <div className="grid grid-cols-4 gap-2">
-                          <div className="text-center p-2 rounded bg-background/50">
-                            <p className="text-lg font-bold text-success">{simulationResults.successProbability.toFixed(0)}%</p>
-                            <p className="text-xs text-muted-foreground">Success Rate</p>
-                          </div>
-                          <div className="text-center p-2 rounded bg-background/50">
-                            <p className="text-lg font-bold text-primary">{simulationResults.recoveryRate}</p>
-                            <p className="text-xs text-muted-foreground">Recovery Rate</p>
-                          </div>
-                          <div className="text-center p-2 rounded bg-background/50">
-                            <p className="text-lg font-bold">{simulationResults.estimatedTime}</p>
-                            <p className="text-xs text-muted-foreground">Est. Time</p>
-                          </div>
-                          <div className="text-center p-2 rounded bg-background/50">
-                            <Badge variant="outline" className={cn("text-xs", simulationResults.riskLevel === 'low' ? 'border-success/50 text-success' : simulationResults.riskLevel === 'medium' ? 'border-border text-muted-foreground' : 'border-error/50 text-error')}>
-                              {simulationResults.riskLevel.toUpperCase()}
-                            </Badge>
-                            <p className="text-xs text-muted-foreground mt-1">Risk Level</p>
-                          </div>
-                        </div>
-                        <Button size="sm" variant="outline" onClick={handleResetSimulation} className="w-full gap-2 text-xs">
-                          <RotateCcw className="h-3.5 w-3.5" />Reset Simulation
-                        </Button>
-                      </CardContent>
-                    </Card>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-border/50" />
+
+              {/* Strategy Simulation Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <Target className="h-4 w-4 text-primary" />
+                    Strategy Simulation
+                  </h3>
+                  {warRoomActive && (
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="text-xs">{selectedStrategies.length} selected</Badge>
+                      <Button 
+                        size="sm" 
+                        onClick={handleSimulateStrategies} 
+                        disabled={selectedStrategies.length === 0 || simulationRunning} 
+                        className="gap-2 h-8 text-xs"
+                      >
+                        {simulationRunning ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Simulating...</> : <><Play className="h-3.5 w-3.5" />Simulate</>}
+                      </Button>
+                    </div>
                   )}
                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-48 text-muted-foreground rounded-lg border border-dashed border-border/50 bg-muted/10">
-                  <Target className="h-10 w-10 mb-3 opacity-30" />
-                  <p className="text-sm">Assemble bridge to access</p>
-                  <p className="text-xs">strategy simulation</p>
-                </div>
-              )}
-            </div>
-
-            {/* Right: Event Log */}
-            <div className="space-y-3 overflow-hidden">
-              <h4 className="text-sm font-semibold flex items-center gap-2 text-foreground">
-                <Activity className="h-4 w-4 text-primary" />
-                Event Log
-              </h4>
-              <div className="space-y-1.5 h-[280px] overflow-y-auto p-3 rounded-lg border bg-muted/20 text-sm">
-                {warRoomLog.map((log, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{log.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                    <p className="text-xs flex-1">{log.message}</p>
-                  </div>
-                ))}
-              </div>
-              {warRoomActive && (
-                <Card className="border-success/30 bg-success/5">
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-2xl font-bold text-success">{decisionTime}s</div>
-                        <div className="text-xs text-muted-foreground">Assembly Time</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-semibold text-success">75% Faster</div>
-                        <div className="text-xs text-muted-foreground">vs. Manual Process</div>
-                      </div>
+                
+                {warRoomActive ? (
+                  <div className="space-y-4">
+                    {/* Strategy Cards Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      {alert.details.aiRecommendations.slice(0, 4).map((rec, i) => {
+                        const details = getStrategyDetails(rec);
+                        const isSelected = selectedStrategies.includes(rec);
+                        const recoveryRate = [96.7, 94.2, 91.8, 89.5][i] || 90;
+                        const probability = details.confidence;
+                        const estimatedTime = ['8 min', '12 min', '15 min', '18 min'][i] || '10 min';
+                        const riskLevel = probability > 93 ? 'Low' : probability > 88 ? 'Medium' : 'High';
+                        return (
+                          <div key={i} className={cn(
+                            "p-4 rounded-lg border cursor-pointer transition-all",
+                            isSelected ? "border-success/50 bg-success/5 ring-1 ring-success/20" : "border-border/40 hover:border-primary/30 hover:bg-muted/10"
+                          )} onClick={() => handleStrategyToggle(rec)}>
+                            <div className="flex items-start gap-3">
+                              <Checkbox checked={isSelected} className="mt-0.5 h-4 w-4" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="font-medium text-sm">{details.title}</span>
+                                  <Badge variant="outline" className="text-[10px] px-1.5">{probability}%</Badge>
+                                </div>
+                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                  <span className="flex items-center gap-1">
+                                    <TrendingUp className="h-3 w-3" />
+                                    {recoveryRate}% recovery
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {estimatedTime}
+                                  </span>
+                                  <span className={cn(
+                                    "flex items-center gap-1",
+                                    riskLevel === 'Low' ? 'text-success' : riskLevel === 'Medium' ? 'text-muted-foreground' : 'text-error'
+                                  )}>
+                                    <Shield className="h-3 w-3" />
+                                    {riskLevel} risk
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+
+                    {/* Simulation Results */}
+                    {showSimulationResults && simulationResults && (
+                      <div className="p-4 rounded-lg border border-success/30 bg-gradient-to-r from-success/5 to-transparent">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-semibold text-success flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4" />
+                            Simulation Complete
+                          </h4>
+                          <Button size="sm" variant="ghost" onClick={handleResetSimulation} className="h-7 px-2 text-xs gap-1.5 text-muted-foreground">
+                            <RotateCcw className="h-3 w-3" />
+                            Reset
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-4 gap-4">
+                          <div className="text-center p-3 rounded-lg bg-background/80 border border-border/20">
+                            <p className="text-2xl font-bold text-success">{simulationResults.successProbability.toFixed(0)}%</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Success Rate</p>
+                          </div>
+                          <div className="text-center p-3 rounded-lg bg-background/80 border border-border/20">
+                            <p className="text-2xl font-bold text-primary">{simulationResults.recoveryRate}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Recovery</p>
+                          </div>
+                          <div className="text-center p-3 rounded-lg bg-background/80 border border-border/20">
+                            <p className="text-2xl font-bold">{simulationResults.estimatedTime}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Est. Time</p>
+                          </div>
+                          <div className="text-center p-3 rounded-lg bg-background/80 border border-border/20">
+                            <Badge className={cn(
+                              "text-xs",
+                              simulationResults.riskLevel === 'Low' && 'bg-success/20 text-success border-success/30',
+                              simulationResults.riskLevel === 'Medium' && 'bg-muted text-foreground',
+                              simulationResults.riskLevel === 'High' && 'bg-error/20 text-error border-error/30'
+                            )}>
+                              {simulationResults.riskLevel}
+                            </Badge>
+                            <p className="text-xs text-muted-foreground mt-1.5">Risk Level</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center py-12 rounded-lg border border-dashed border-border/40 bg-muted/5">
+                    <div className="text-center">
+                      <Target className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
+                      <p className="text-sm text-muted-foreground">Assemble bridge to access strategy simulation</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-border/50" />
+
+              {/* Event Log Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" />
+                    Event Log
+                  </h3>
+                  {warRoomActive && (
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Assembly Time:</span>
+                        <span className="font-mono font-semibold text-success">{decisionTime}s</span>
+                      </div>
+                      <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/30">
+                        75% Faster than Manual
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+                <div className="p-4 rounded-lg border border-border/30 bg-muted/5 max-h-48 overflow-y-auto">
+                  <div className="space-y-2">
+                    {warRoomLog.map((log, index) => (
+                      <div key={index} className="flex items-start gap-3 text-sm">
+                        <span className="font-mono text-xs text-muted-foreground whitespace-nowrap pt-0.5">
+                          {log.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary/50 mt-2 shrink-0" />
+                        <p className="text-xs text-foreground/80 flex-1">{log.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* End War Room Button - Centered at bottom */}
-          <div className="pt-4 flex justify-center border-t border-border/30">
-            <Button variant="destructive" size="lg" onClick={handleEndWarRoom} className="px-8">
-              End War Room
-            </Button>
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-border/30 bg-muted/5 shrink-0">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                {warRoomActive ? 'War room session active. All participants can collaborate in real-time.' : 'Assemble the bridge to start coordinating incident response.'}
+              </p>
+              <Button variant="destructive" size="sm" onClick={handleEndWarRoom} className="px-6">
+                End War Room
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
