@@ -4,7 +4,7 @@ import {
   ArrowLeft, AlertTriangle, Brain, Play, Zap, GitBranch, FileText, MessageSquareWarning,
   CheckCircle, Clock, XCircle, Loader2, Shield, Target, Activity, Minus, X,
   Server, MapPin, DollarSign, ChevronRight, Pause, Users, UserCheck, Building2, Headphones, PhoneCall, PhoneForwarded, UserPlus, CircleDotDashed,
-  TrendingUp, Eye, ArrowRight, BarChart3
+  TrendingUp, Eye, ArrowRight, BarChart3, RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { cn, playHeliosNotification } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useWarRoom, ParticipantStatus, ParticipantType, WarRoomParticipant } from '@/hooks/useWarRoom';
@@ -21,6 +21,13 @@ import { useWarRoom, ParticipantStatus, ParticipantType, WarRoomParticipant } fr
 interface IRCAlertDetailProps {
   alert: IRCAlert;
   onBack: () => void;
+}
+
+interface ExecutionAgent {
+  name: string;
+  status: 'idle' | 'active' | 'completed';
+  currentTask: string;
+  progress: number;
 }
 
 const phaseLabels = {
@@ -32,15 +39,15 @@ const phaseLabels = {
 };
 
 const statusIcons = {
-  completed: <CheckCircle className="h-4 w-4 text-success" />,
-  'in-progress': <Loader2 className="h-4 w-4 text-warning animate-spin" />,
-  pending: <Clock className="h-4 w-4 text-muted-foreground" />,
-  blocked: <XCircle className="h-4 w-4 text-error" />,
+  completed: <CheckCircle className="h-3 w-3 text-success" />,
+  'in-progress': <Loader2 className="h-3 w-3 text-muted-foreground animate-spin" />,
+  pending: <Clock className="h-3 w-3 text-muted-foreground" />,
+  blocked: <XCircle className="h-3 w-3 text-error" />,
 };
 
 const riskColors = {
-  low: 'text-success border-success/30 bg-success/10',
-  medium: 'text-warning border-warning/30 bg-warning/10',
+  low: 'text-muted-foreground border-border/30 bg-muted/10',
+  medium: 'text-muted-foreground border-border/50 bg-muted/20',
   high: 'text-error border-error/30 bg-error/10',
 };
 
@@ -329,15 +336,15 @@ const allParticipants: WarRoomParticipant[] = [
 ];
 
 const typeConfig = {
-  approval: { name: 'Approval Chain', icon: <UserCheck className="h-4 w-4" /> },
-  coordination: { name: 'Team Coordination', icon: <Users className="h-4 w-4" /> },
+  approval: { name: 'Approval Chain', icon: <UserCheck className="h-3 w-3" /> },
+  coordination: { name: 'Team Coordination', icon: <Users className="h-3 w-3" /> },
 };
 
 const statusConfig: Record<ParticipantStatus, { text: string; icon: JSX.Element; color: string }> = {
-  pending: { text: 'Standby', icon: <CircleDotDashed className="h-3 w-3" />, color: 'bg-muted/80 border-muted-foreground/20' },
-  calling: { text: 'Calling...', icon: <PhoneCall className="h-3 w-3 animate-pulse" />, color: 'bg-primary/10 text-primary border-primary/30' },
-  joining: { text: 'Joining...', icon: <PhoneForwarded className="h-3 w-3" />, color: 'bg-primary/10 text-primary border-primary/30' },
-  joined: { text: 'Joined', icon: <CheckCircle className="h-3 w-3" />, color: 'bg-success/10 text-success border-success/30' },
+  pending: { text: 'Standby', icon: <CircleDotDashed className="h-2.5 w-2.5" />, color: 'bg-muted/80 border-muted-foreground/20' },
+  calling: { text: 'Calling...', icon: <PhoneCall className="h-2.5 w-2.5 animate-pulse" />, color: 'bg-muted/50 text-foreground border-border' },
+  joining: { text: 'Joining...', icon: <PhoneForwarded className="h-2.5 w-2.5" />, color: 'bg-muted/50 text-foreground border-border' },
+  joined: { text: 'Joined', icon: <CheckCircle className="h-2.5 w-2.5" />, color: 'bg-success/10 text-success border-success/30' },
 };
 
 export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
@@ -359,6 +366,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
   const [executionAgents, setExecutionAgents] = useState<ExecutionAgent[]>([]);
   const [executionProgress, setExecutionProgress] = useState(0);
   const [impactMetrics, setImpactMetrics] = useState<any>(null);
+  const [warRoomSimulationResults, setWarRoomSimulationResults] = useState<any>(null);
 
   const {
     isOpen: warRoomOpen,
@@ -521,10 +529,23 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
   };
 
   const handleEndWarRoom = useCallback(() => {
+    // Save simulation results before ending war room
+    if (showSimulationResults && simulationResults) {
+      setWarRoomSimulationResults(simulationResults);
+    }
     warRoomActions.resetState();
     setActiveTab('decision');
-    toast.info("War Room session has ended. You can now select another option.");
-  }, [warRoomActions, setActiveTab]);
+    toast.info("War Room session has ended. View your simulation results in the Decision tab.");
+  }, [warRoomActions, setActiveTab, showSimulationResults, simulationResults]);
+
+  const handleResetSimulation = useCallback(() => {
+    setSelectedStrategies([]);
+    setSimulationResults(null);
+    setShowSimulationResults(false);
+    setSimulationSteps([]);
+    setWarRoomSimulationResults(null);
+    toast.info("Simulation has been reset.");
+  }, []);
 
   const handleReturnToDashboard = useCallback(() => {
     closeWarRoomDialog();
@@ -552,7 +573,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 h-full flex flex-col gap-2 overflow-hidden">
       {/* Minimized War Room Widget */}
       {warRoomActive && warRoomMinimized && (
         <div
@@ -575,151 +596,142 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
       )}
 
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="outline" onClick={onBack} className="gap-2">
+      <div className="flex items-center gap-4 shrink-0">
+        <Button variant="outline" onClick={onBack} className="gap-2 h-9 px-3 text-sm">
           <ArrowLeft className="h-4 w-4" />
-          Back to Alerts
+          Back
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <Badge className={cn(
-              alert.severity === 'critical' && 'bg-error text-error-foreground',
-              alert.severity === 'high' && 'bg-warning text-warning-foreground',
-              alert.severity === 'medium' && 'bg-noc text-noc-foreground',
-              alert.severity === 'low' && 'bg-muted text-muted-foreground'
+              "text-xs px-2 py-0.5",
+              alert.severity === 'critical' && 'bg-error/80 text-error-foreground',
+              alert.severity === 'high' && 'bg-muted/80 text-foreground',
+              alert.severity === 'medium' && 'bg-muted/60 text-foreground',
+              alert.severity === 'low' && 'bg-muted/40 text-muted-foreground'
             )}>
               {alert.severity.toUpperCase()}
             </Badge>
-            <span className="font-mono text-sm">{alert.id}</span>
+            <span className="font-mono text-xs text-muted-foreground">{alert.id}</span>
           </div>
-          <h1 className="text-2xl font-bold">{alert.title}</h1>
+          <h1 className="text-xl font-semibold text-foreground/90">{alert.title}</h1>
         </div>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-border/50">
-          <CardContent className="p-3 flex items-center gap-3">
-            <Clock className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Detected</p>
-              <p className="text-sm font-medium">{new Date(alert.timestamp).toLocaleTimeString()}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50">
-          <CardContent className="p-3 flex items-center gap-3">
-            <MapPin className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Region</p>
-              <p className="text-sm font-medium">{alert.region}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50">
-          <CardContent className="p-3 flex items-center gap-3">
-            <Server className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Systems</p>
-              <p className="text-sm font-medium">{alert.affectedSystems.length} affected</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-error/30 bg-error/5">
-          <CardContent className="p-3 flex items-center gap-3">
-            <DollarSign className="h-5 w-5 text-error" />
-            <div>
-              <p className="text-xs text-muted-foreground">Impact</p>
-              <p className="text-sm font-medium text-error">{alert.businessImpact.split(' - ')[1] || alert.businessImpact}</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-4 gap-3 shrink-0">
+        <div className="flex items-center gap-3 p-3 rounded bg-muted/10 border border-border/20">
+          <Clock className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <p className="text-xs text-muted-foreground">Detected</p>
+            <p className="text-sm font-medium">{new Date(alert.timestamp).toLocaleTimeString()}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded bg-muted/10 border border-border/20">
+          <MapPin className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <p className="text-xs text-muted-foreground">Region</p>
+            <p className="text-sm font-medium">{alert.region}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded bg-muted/10 border border-border/20">
+          <Server className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <p className="text-xs text-muted-foreground">Systems</p>
+            <p className="text-sm font-medium">{alert.affectedSystems.length} affected</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded bg-error/5 border border-error/20">
+          <DollarSign className="h-5 w-5 text-error" />
+          <div>
+            <p className="text-xs text-muted-foreground">Impact</p>
+            <p className="text-sm font-medium text-error">{alert.businessImpact.split(' - ')[1] || alert.businessImpact}</p>
+          </div>
+        </div>
       </div>
 
       {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-5 h-auto gap-1 bg-muted/50 p-1">
-          <TabsTrigger value="overview" className="text-xs px-2 py-2">
-            <FileText className="h-3 w-3 mr-1" />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
+        <TabsList className="grid grid-cols-5 h-auto gap-1.5 bg-muted/30 p-1 shrink-0">
+          <TabsTrigger value="overview" className="text-sm px-3 py-2">
+            <FileText className="h-4 w-4 mr-1.5" />
             Overview
           </TabsTrigger>
-          <TabsTrigger value="ai" className="text-xs px-2 py-2">
-            <Brain className="h-3 w-3 mr-1" />
-            AI recommendations
+          <TabsTrigger value="ai" className="text-sm px-3 py-2">
+            <Brain className="h-4 w-4 mr-1.5" />
+            AI
           </TabsTrigger>
-          <TabsTrigger value="decision" className="text-xs px-2 py-2">
-            <Target className="h-3 w-3 mr-1" />
+          <TabsTrigger value="decision" className="text-sm px-3 py-2">
+            <Target className="h-4 w-4 mr-1.5" />
             Decision
           </TabsTrigger>
-          <TabsTrigger value="execution" className="text-xs px-2 py-2">
-            <Zap className="h-3 w-3 mr-1" />
+          <TabsTrigger value="execution" className="text-sm px-3 py-2">
+            <Zap className="h-4 w-4 mr-1.5" />
             Execution
           </TabsTrigger>
-          <TabsTrigger value="impact" className="text-xs px-2 py-2">
-            <TrendingUp className="h-3 w-3 mr-1" />
+          <TabsTrigger value="impact" className="text-sm px-3 py-2">
+            <TrendingUp className="h-4 w-4 mr-1.5" />
             Impact
           </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
-        <TabsContent value="overview" className="mt-6 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
+        <TabsContent value="overview" className="mt-3 flex-1 min-h-0 overflow-hidden">
+          <Card className="h-full border-border/30">
+            <CardHeader className="py-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground/90">
+                <Shield className="h-4 w-4 text-muted-foreground" />
                 Incident Overview
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4 p-4 rounded-lg bg-muted/30 border border-border/50">
+            <CardContent className="space-y-3 pt-0">
+              <div className="grid grid-cols-4 gap-3 p-3 rounded bg-muted/20 border border-border/30">
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">Alert ID</h4>
-                  <p className="font-mono">{alert.id}</p>
+                  <p className="text-xs text-muted-foreground">Alert ID</p>
+                  <p className="font-mono text-sm">{alert.id}</p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">Source</h4>
-                  <p>{alert.source}</p>
+                  <p className="text-xs text-muted-foreground">Source</p>
+                  <p className="text-sm">{alert.source}</p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">Timestamp</h4>
-                  <p>{new Date(alert.timestamp).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">Timestamp</p>
+                  <p className="text-sm">{new Date(alert.timestamp).toLocaleString()}</p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">Current Phase</h4>
-                  <Badge>{phaseLabels[alert.phase]}</Badge>
+                  <p className="text-xs text-muted-foreground">Phase</p>
+                  <Badge className="text-xs px-2 py-0.5">{phaseLabels[alert.phase]}</Badge>
                 </div>
               </div>
 
-              <div className="p-3 rounded-lg border border-error/30 bg-error/5">
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">SLA Risk</h4>
-                <p className="text-error font-medium">{alert.slaRisk}</p>
+              <div className="p-3 rounded border border-error/20 bg-error/5">
+                <p className="text-xs text-muted-foreground">SLA Risk</p>
+                <p className="text-error text-sm font-medium">{alert.slaRisk}</p>
               </div>
 
               <div>
-                <h4 className="font-semibold mb-2">Business Context</h4>
-                <p className="text-muted-foreground">{alert.details.situation.businessContext}</p>
+                <p className="text-sm font-medium text-foreground/80 mb-1">Business Context</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{alert.details.situation.businessContext}</p>
               </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-soc" />
-                    SOC Role
-                  </h4>
-                  <p className="text-sm text-muted-foreground">{alert.details.situation.socRole}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded bg-muted/10 border border-border/20">
+                  <p className="text-sm font-medium text-foreground/80 flex items-center gap-1.5 mb-1">
+                    <Shield className="h-4 w-4" />SOC Role
+                  </p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{alert.details.situation.socRole}</p>
                 </div>
-                <div>
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-noc" />
-                    NOC Role
-                  </h4>
-                  <p className="text-sm text-muted-foreground">{alert.details.situation.nocRole}</p>
+                <div className="p-3 rounded bg-muted/10 border border-border/20">
+                  <p className="text-sm font-medium text-foreground/80 flex items-center gap-1.5 mb-1">
+                    <Activity className="h-4 w-4" />NOC Role
+                  </p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{alert.details.situation.nocRole}</p>
                 </div>
               </div>
               <div>
-                <h4 className="font-semibold mb-2">Affected Systems</h4>
-                <div className="flex flex-wrap gap-2">
+                <p className="text-sm font-medium text-foreground/80 mb-1.5">Affected Systems</p>
+                <div className="flex flex-wrap gap-1.5">
                   {alert.affectedSystems.map((system, i) => (
-                    <Badge key={i} variant="outline">{system}</Badge>
+                    <Badge key={i} variant="outline" className="text-xs px-2 py-0.5">{system}</Badge>
                   ))}
                 </div>
               </div>
@@ -727,40 +739,38 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
           </Card>
         </TabsContent>
 
-        {/* AI Recommendations Tab - Updated with Deep Dive */}
-        <TabsContent value="ai" className="mt-6 space-y-4">
-          <Card className="border-primary/30">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-primary" />
+        {/* AI Recommendations Tab */}
+        <TabsContent value="ai" className="mt-3 flex-1 min-h-0 overflow-hidden">
+          <Card className="h-full border-border/30">
+            <CardHeader className="py-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground/90">
+                <Brain className="h-4 w-4 text-muted-foreground" />
                 HELIOS AI Recommendations
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2 pt-0">
               {alert.details.aiRecommendations.map((rec, i) => {
                 const details = getStrategyDetails(rec);
                 return (
-                  <div key={i} className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
-                    <div className="p-2 rounded bg-primary/20">
-                      <Brain className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-sm font-medium">{details.title}</p>
-                        <Badge variant="outline" className="text-xs bg-primary/10">
-                          {details.confidence}% confidence
+                  <div key={i} className="flex items-center gap-3 p-3 rounded bg-muted/10 border border-border/20">
+                    <Brain className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium truncate">{details.title}</p>
+                        <Badge variant="outline" className="text-xs px-2 py-0.5 shrink-0">
+                          {details.confidence}%
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">{rec}</p>
+                      <p className="text-xs text-muted-foreground truncate">{rec}</p>
                     </div>
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="ghost"
                       onClick={() => handleDeepDive(rec)}
-                      className="gap-1"
+                      className="h-8 px-3 text-xs gap-1.5 shrink-0"
                     >
-                      <Eye className="h-3 w-3" />
-                      Deep Dive
+                      <Eye className="h-3.5 w-3.5" />
+                      Details
                     </Button>
                   </div>
                 );
@@ -769,171 +779,100 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
           </Card>
         </TabsContent>
 
-        {/* Decision Tab - Updated with strategy selection */}
-        <TabsContent value="decision" className="mt-6 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-warning" />
+        {/* Decision Tab */}
+        <TabsContent value="decision" className="mt-3 flex-1 min-h-0 overflow-hidden">
+          <Card className="h-full border-border/30">
+            <CardHeader className="py-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground/90">
+                <Target className="h-4 w-4 text-muted-foreground" />
                 Strategy Selection & Simulation
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 rounded-lg border border-warning/30 bg-warning/5">
-                <h4 className="font-semibold mb-2">Leader's Role</h4>
-                <p className="text-muted-foreground">{alert.details.decision.leaderRole}</p>
+            <CardContent className="space-y-3 pt-0">
+              <div className="p-3 rounded bg-muted/10 border border-border/20">
+                <p className="text-sm font-medium text-foreground/80 mb-1">Leader's Role</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{alert.details.decision.leaderRole}</p>
               </div>
 
-              {/* Strategy Selection */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold">Select Strategies to Simulate</h4>
-                  <Badge variant="outline">{selectedStrategies.length} selected</Badge>
-                </div>
-
-                {alert.details.aiRecommendations.map((rec, i) => {
-                  const details = getStrategyDetails(rec);
-                  const isSelected = selectedStrategies.includes(rec);
-
-                  return (
-                    <div
-                      key={i}
-                      className={cn(
-                        "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all",
-                        isSelected
-                          ? "border-primary bg-primary/10"
-                          : "border-border/50 hover:border-primary/50"
-                      )}
-                      onClick={() => handleStrategyToggle(rec)}
-                    >
-                      <Checkbox
-                        checked={isSelected}
-                        className="mt-0.5"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium">{details.title}</p>
-                          <Badge variant="outline" className="text-xs">
-                            {details.confidence}%
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">{rec.substring(0, 80)}...</p>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Simulate Button */}
+              {/* Initiate War Room */}
+              <div className="flex items-center gap-2 flex-wrap">
                 <Button
-                  onClick={handleSimulateStrategies}
-                  disabled={selectedStrategies.length === 0 || simulationRunning}
-                  className="w-full gap-2"
-                  size="lg"
-                >
-                  {simulationRunning ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Simulating...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4" />
-                      Simulate Selected Strategies
-                    </>
+                  size="sm"
+                  onClick={handleInitiateWarRoom}
+                  className={cn(
+                    "gap-1.5 h-9 text-sm px-4",
+                    warRoomActive ? "bg-success/20 text-success hover:bg-success/30" : ""
                   )}
+                  disabled={isAssembling || warRoomActive}
+                >
+                  {warRoomActive ? <><CheckCircle className="h-4 w-4" /> War Room Live</> : (isAssembling ? <><Loader2 className="h-4 w-4 animate-spin" /> Assembling...</> : <><Users className="h-4 w-4" /> Initiate War Room</>)}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleTakeAction('Approve Failover')} className="gap-1.5 h-9 text-sm px-4">
+                  <CheckCircle className="h-4 w-4" />
+                  Approve
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleTakeAction('Override Prioritization')} className="h-9 text-sm px-4">
+                  Override
                 </Button>
               </div>
-              <div>
-                <h4 className="font-semibold mb-2">SOC/NOC Functionality</h4>
-                <p className="text-muted-foreground">{alert.details.decision.socNocFunctionality}</p>
-              </div>
-              {/* Challenge Today - Commented out as requested */}
-              {/* <div className="p-4 rounded-lg border border-error/30 bg-error/5">
-                <h4 className="font-semibold mb-2 text-error">Challenge Today</h4>
-                <p className="text-muted-foreground">{alert.details.decision.challengeToday}</p>
-              </div> */}
 
-              {/* Simulation Progress */}
-              {simulationRunning && simulationSteps.length > 0 && (
-                <Card className="border-primary/30">
-                  <CardContent className="p-4">
-                    <h5 className="font-medium text-sm mb-3">Simulation Progress</h5>
-                    <div className="space-y-2">
-                      {simulationSteps.map((step) => (
-                        <div key={step.id} className="flex items-center gap-3">
-                          <div className="w-5 h-5 flex items-center justify-center">
-                            {step.status === 'completed' && <CheckCircle className="h-4 w-4 text-success" />}
-                            {step.status === 'running' && <Loader2 className="h-4 w-4 text-primary animate-spin" />}
-                            {step.status === 'pending' && <Clock className="h-4 w-4 text-muted-foreground" />}
-                          </div>
-                          <span className={cn(
-                            "text-sm flex-1",
-                            step.status === 'completed' && "text-success",
-                            step.status === 'running' && "text-primary font-medium",
-                            step.status === 'pending' && "text-muted-foreground"
-                          )}>
-                            {step.name}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+              {warRoomActive && (
+                <div className="flex items-center justify-between p-3 rounded bg-success/5 border border-success/20">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-success" />
+                    <span className="text-sm font-medium text-success">War Room Active</span>
+                  </div>
+                  <Badge variant="outline" className="text-xs px-2 py-0.5 bg-success/10 text-success">
+                    {decisionTime}s
+                  </Badge>
+                </div>
               )}
 
-              {/* Simulation Results */}
-              {showSimulationResults && simulationResults && (
-                <Card className="border-success/30 bg-success/5">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-success">
-                      <CheckCircle className="h-5 w-5" />
-                      Simulation Results
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="text-center p-3 rounded-lg bg-background/50">
-                        <p className="text-2xl font-bold text-success">{simulationResults.successProbability.toFixed(1)}%</p>
-                        <p className="text-xs text-muted-foreground">Success Probability</p>
+              {/* War Room Simulation Results */}
+              {warRoomSimulationResults && !warRoomActive && (
+                <Card className="border-success/20 bg-success/5">
+                  <CardContent className="p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-sm font-medium text-success">
+                        <CheckCircle className="h-4 w-4" />
+                        Simulation Results
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleResetSimulation}
+                        className="h-8 px-3 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Reset
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      <div className="text-center p-2 rounded bg-background/50">
+                        <p className="text-base font-bold text-success">{warRoomSimulationResults.successProbability.toFixed(0)}%</p>
+                        <p className="text-xs text-muted-foreground">Success</p>
                       </div>
-                      <div className="text-center p-3 rounded-lg bg-background/50">
-                        <p className="text-2xl font-bold">{simulationResults.estimatedTime}</p>
-                        <p className="text-xs text-muted-foreground">Est. Resolution</p>
+                      <div className="text-center p-2 rounded bg-background/50">
+                        <p className="text-base font-bold">{warRoomSimulationResults.estimatedTime}</p>
+                        <p className="text-xs text-muted-foreground">Time</p>
                       </div>
-                      <div className="text-center p-3 rounded-lg bg-background/50">
-                        <p className="text-2xl font-bold text-primary">{simulationResults.recoveryRate}</p>
-                        <p className="text-xs text-muted-foreground">Recovery Rate</p>
+                      <div className="text-center p-2 rounded bg-background/50">
+                        <p className="text-base font-bold">{warRoomSimulationResults.recoveryRate}</p>
+                        <p className="text-xs text-muted-foreground">Recovery</p>
                       </div>
-                      <div className="text-center p-3 rounded-lg bg-background/50">
+                      <div className="text-center p-2 rounded bg-background/50">
                         <Badge className={cn(
-                          simulationResults.riskLevel === 'Low' && 'bg-success',
-                          simulationResults.riskLevel === 'Medium' && 'bg-warning',
-                          simulationResults.riskLevel === 'High' && 'bg-error'
+                          "text-xs px-2 py-0.5",
+                          warRoomSimulationResults.riskLevel === 'Low' && 'bg-success',
+                          warRoomSimulationResults.riskLevel === 'Medium' && 'bg-muted text-foreground',
+                          warRoomSimulationResults.riskLevel === 'High' && 'bg-error'
                         )}>
-                          {simulationResults.riskLevel} Risk
+                          {warRoomSimulationResults.riskLevel}
                         </Badge>
-                        <p className="text-xs text-muted-foreground mt-1">Risk Level</p>
+                        <p className="text-xs text-muted-foreground mt-1">Risk</p>
                       </div>
                     </div>
-
-                    <div className="space-y-2">
-                      <h5 className="font-medium text-sm">Strategy Impact Preview</h5>
-                      {simulationResults.strategies.map((s: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between p-2 rounded bg-background/50">
-                          <span className="text-sm">{s.name}</span>
-                          <div className="flex items-center gap-2">
-                            <Progress value={s.confidence} className="w-20 h-2" />
-                            <span className="text-xs text-muted-foreground">{s.confidence}%</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <Button
-                      onClick={handleExecuteStrategies}
-                      className="w-full gap-2"
-                      size="lg"
-                    >
+                    <Button onClick={handleExecuteStrategies} className="w-full gap-1.5 h-9 text-sm" size="sm">
                       <Zap className="h-4 w-4" />
                       Execute Strategies
                       <ArrowRight className="h-4 w-4" />
@@ -942,98 +881,59 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                 </Card>
               )}
 
-              {/* War Room Section */}
-              <div className="pt-4 border-t border-border/50">
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={() => handleTakeAction('Approve Failover')} className="gap-2">
-                    <CheckCircle className="h-4 w-4" />
-                    Approve Failover
-                  </Button>
-                  <Button variant="outline" onClick={() => handleTakeAction('Override Prioritization')}>
-                    Override Prioritization
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleInitiateWarRoom}
-                    className={cn(
-                      "gap-2 transition-all w-[180px]", // Fixed width for consistency
-                      warRoomActive ? "bg-success text-success-foreground cursor-not-allowed" : "border-primary/50 hover:bg-primary/10"
-                    )}
-                    // Disable if assembling or if the war room is fully active.
-                    disabled={isAssembling || warRoomActive}
-                  >
-                    {warRoomActive ? <><CheckCircle className="h-4 w-4" /> War Room Live</> : (isAssembling ? <><Loader2 className="h-4 w-4 animate-spin" /> Assembling...</> : <><Users className="h-4 w-4" /> Initiate War Room</>)}
-                  </Button>
-                </div>
-
-                {warRoomActive && (
-                  <Card className="mt-4 border-success/30 bg-success/5">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-5 w-5 text-success" />
-                          <span className="font-semibold text-success">War Room Active</span>
-                        </div>
-                        <Badge variant="outline" className="bg-success/10 text-success">
-                          Decision Time: {decisionTime}s
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        All team leads joined and coordinated. Ready for execution.
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
+              <div className="p-3 rounded bg-muted/10 border border-border/20">
+                <p className="text-sm font-medium text-foreground/80 mb-1">SOC/NOC Functionality</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{alert.details.decision.socNocFunctionality}</p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Execution Tab - Merged Simulation & Actions with Agent Workflow */}
-        <TabsContent value="execution" className="mt-6 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-primary" />
+        {/* Execution Tab */}
+        <TabsContent value="execution" className="mt-3 flex-1 min-h-0 overflow-hidden">
+          <Card className="h-full border-border/30">
+            <CardHeader className="py-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground/90">
+                <Zap className="h-4 w-4 text-muted-foreground" />
                 Agent Execution Workflow
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 pt-0">
               {executionAgents.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <Zap className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                  <p>No execution in progress</p>
-                  <p className="text-sm">Select strategies in the Decision tab and click Execute to begin</p>
+                  <Zap className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">No execution in progress</p>
+                  <p className="text-xs">Select strategies in Decision tab and click Execute</p>
                 </div>
               ) : (
                 <>
                   {/* Overall Progress */}
-                  <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                  <div className="p-3 rounded bg-muted/10 border border-border/20">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium">Overall Execution Progress</span>
+                      <span className="text-sm font-medium text-foreground/80">Overall Progress</span>
                       <span className="text-sm font-mono">{executionProgress.toFixed(0)}%</span>
                     </div>
-                    <Progress value={executionProgress} className="h-3" />
+                    <Progress value={executionProgress} className="h-2" />
                   </div>
 
-                  {/* Agent Workflow Visualization */}
-                  <div className="space-y-3">
+                  {/* Agent Workflow */}
+                  <div className="space-y-2">
                     {executionAgents.map((agent, i) => (
                       <div
                         key={i}
                         className={cn(
-                          "p-4 rounded-lg border transition-all",
-                          agent.status === 'active' && "border-primary bg-primary/5 animate-pulse",
-                          agent.status === 'completed' && "border-success/50 bg-success/5",
-                          agent.status === 'idle' && "border-border/50 bg-muted/30"
+                          "p-3 rounded border transition-all",
+                          agent.status === 'active' && "border-primary/30 bg-primary/5",
+                          agent.status === 'completed' && "border-success/30 bg-success/5",
+                          agent.status === 'idle' && "border-border/20 bg-muted/10"
                         )}
                       >
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className={cn(
-                              "w-8 h-8 rounded-full flex items-center justify-center",
-                              agent.status === 'active' && "bg-primary text-primary-foreground",
-                              agent.status === 'completed' && "bg-success text-success-foreground",
+                              "w-7 h-7 rounded-full flex items-center justify-center",
+                              agent.status === 'active' && "bg-primary/20 text-primary",
+                              agent.status === 'completed' && "bg-success/20 text-success",
                               agent.status === 'idle' && "bg-muted text-muted-foreground"
                             )}>
                               {agent.status === 'completed' ? (
@@ -1045,48 +945,43 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                               )}
                             </div>
                             <div>
-                              <p className="font-medium">{agent.name}</p>
+                              <p className="text-sm font-medium">{agent.name}</p>
                               <p className="text-xs text-muted-foreground">{agent.currentTask}</p>
                             </div>
                           </div>
                           <Badge variant="outline" className={cn(
+                            "text-xs px-2 py-0.5",
                             agent.status === 'active' && "bg-primary/10 text-primary",
                             agent.status === 'completed' && "bg-success/10 text-success",
                             agent.status === 'idle' && "bg-muted text-muted-foreground"
                           )}>
-                            {agent.status === 'completed' ? 'Complete' : agent.status === 'active' ? 'Running' : 'Standby'}
+                            {agent.status === 'completed' ? 'Done' : agent.status === 'active' ? 'Running' : 'Standby'}
                           </Badge>
                         </div>
                         {agent.status !== 'idle' && (
-                          <Progress value={agent.progress} className="h-1.5" />
+                          <Progress value={agent.progress} className="h-1.5 mt-2" />
                         )}
                       </div>
                     ))}
                   </div>
 
-                  {/* Execution Complete Message */}
+                  {/* Execution Complete */}
                   {executionProgress === 100 && (
-                    <Card className="border-success/30 bg-success/5">
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3">
-                          <CheckCircle className="h-6 w-6 text-success" />
-                          <div>
-                            <p className="font-semibold text-success">Execution Complete</p>
-                            <p className="text-sm text-muted-foreground">
-                              All strategies have been successfully executed. View the Impact tab for detailed results.
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          onClick={() => setActiveTab('impact')}
-                          variant="outline"
-                          className="mt-4 gap-2"
-                        >
-                          <BarChart3 className="h-4 w-4" />
-                          View Impact Analysis
-                        </Button>
-                      </CardContent>
-                    </Card>
+                    <div className="flex items-center justify-between p-3 rounded bg-success/5 border border-success/20">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-success" />
+                        <span className="text-sm font-medium text-success">Execution Complete</span>
+                      </div>
+                      <Button
+                        onClick={() => setActiveTab('impact')}
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-3 text-xs gap-1.5"
+                      >
+                        <BarChart3 className="h-3.5 w-3.5" />
+                        View Impact
+                      </Button>
+                    </div>
                   )}
                 </>
               )}
@@ -1094,135 +989,106 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
           </Card>
         </TabsContent>
 
-        {/* Impact Tab - Replaces Workflow */}
-        <TabsContent value="impact" className="mt-6 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-success" />
+        {/* Impact Tab */}
+        <TabsContent value="impact" className="mt-3 flex-1 min-h-0 overflow-hidden">
+          <Card className="h-full border-border/30">
+            <CardHeader className="py-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground/90">
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 Resolution Impact Analysis
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 pt-0">
               {!impactMetrics ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                  <p>No impact data available</p>
-                  <p className="text-sm">Execute strategies to see impact analysis</p>
+                  <BarChart3 className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">No impact data available</p>
+                  <p className="text-xs">Execute strategies to see impact analysis</p>
                 </div>
               ) : (
                 <>
                   {/* Key Metrics */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <Card className="border-success/30 bg-success/5">
-                      <CardContent className="p-4 text-center">
-                        <p className="text-3xl font-bold text-success">{impactMetrics.serviceRestoration}%</p>
-                        <p className="text-sm text-muted-foreground">Service Restored</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="border-primary/30 bg-primary/5">
-                      <CardContent className="p-4 text-center">
-                        <p className="text-3xl font-bold text-primary">{impactMetrics.transactionsRecovered.toLocaleString()}</p>
-                        <p className="text-sm text-muted-foreground">Transactions Recovered</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="border-warning/30 bg-warning/5">
-                      <CardContent className="p-4 text-center">
-                        <p className="text-3xl font-bold text-warning">{impactMetrics.revenueProtected}</p>
-                        <p className="text-sm text-muted-foreground">Revenue Protected</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="border-success/30 bg-success/5">
-                      <CardContent className="p-4 text-center">
-                        <p className="text-3xl font-bold text-success">{impactMetrics.slaCompliance}%</p>
-                        <p className="text-sm text-muted-foreground">SLA Compliance</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="border-primary/30 bg-primary/5">
-                      <CardContent className="p-4 text-center">
-                        <p className="text-3xl font-bold text-primary">{impactMetrics.mttr}</p>
-                        <p className="text-sm text-muted-foreground">Mean Time to Resolve</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="border-success/30 bg-success/5">
-                      <CardContent className="p-4 text-center">
-                        <p className="text-3xl font-bold text-success">{impactMetrics.affectedUsersResolved}%</p>
-                        <p className="text-sm text-muted-foreground">Users Resolved</p>
-                      </CardContent>
-                    </Card>
+                  <div className="grid grid-cols-6 gap-2">
+                    <div className="text-center p-2 rounded bg-success/5 border border-success/20">
+                      <p className="text-lg font-bold text-success">{impactMetrics.serviceRestoration}%</p>
+                      <p className="text-xs text-muted-foreground">Restored</p>
+                    </div>
+                    <div className="text-center p-2 rounded bg-muted/10 border border-border/20">
+                      <p className="text-lg font-bold">{impactMetrics.transactionsRecovered.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">Transactions</p>
+                    </div>
+                    <div className="text-center p-2 rounded bg-muted/10 border border-border/20">
+                      <p className="text-lg font-bold">{impactMetrics.revenueProtected}</p>
+                      <p className="text-xs text-muted-foreground">Revenue</p>
+                    </div>
+                    <div className="text-center p-2 rounded bg-success/5 border border-success/20">
+                      <p className="text-lg font-bold text-success">{impactMetrics.slaCompliance}%</p>
+                      <p className="text-xs text-muted-foreground">SLA</p>
+                    </div>
+                    <div className="text-center p-2 rounded bg-muted/10 border border-border/20">
+                      <p className="text-lg font-bold">{impactMetrics.mttr}</p>
+                      <p className="text-xs text-muted-foreground">MTTR</p>
+                    </div>
+                    <div className="text-center p-2 rounded bg-success/5 border border-success/20">
+                      <p className="text-lg font-bold text-success">{impactMetrics.affectedUsersResolved}%</p>
+                      <p className="text-xs text-muted-foreground">Users</p>
+                    </div>
                   </div>
 
                   {/* Resolution Summary */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Resolution Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10">
-                        <CheckCircle className="h-5 w-5 text-success" />
-                        <div>
-                          <p className="font-medium">Primary Systems Restored</p>
-                          <p className="text-sm text-muted-foreground">All payment APIs operational in US-West-2</p>
-                        </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center gap-2 p-2.5 rounded bg-success/5 border border-success/10">
+                      <CheckCircle className="h-4 w-4 text-success shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">Systems Restored</p>
+                        <p className="text-xs text-muted-foreground truncate">Payment APIs in US-West-2</p>
                       </div>
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10">
-                        <CheckCircle className="h-5 w-5 text-success" />
-                        <div>
-                          <p className="font-medium">Database Failover Complete</p>
-                          <p className="text-sm text-muted-foreground">Read replicas promoted, replication lag at 145ms</p>
-                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 p-2.5 rounded bg-success/5 border border-success/10">
+                      <CheckCircle className="h-4 w-4 text-success shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">DB Failover Done</p>
+                        <p className="text-xs text-muted-foreground truncate">Lag at 145ms</p>
                       </div>
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10">
-                        <CheckCircle className="h-5 w-5 text-success" />
-                        <div>
-                          <p className="font-medium">Traffic Steering Active</p>
-                          <p className="text-sm text-muted-foreground">96.7% of traffic now routed to healthy region</p>
-                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 p-2.5 rounded bg-success/5 border border-success/10">
+                      <CheckCircle className="h-4 w-4 text-success shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">Traffic Steering</p>
+                        <p className="text-xs text-muted-foreground truncate">96.7% to healthy region</p>
                       </div>
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-warning/10">
-                        <Clock className="h-5 w-5 text-warning" />
-                        <div>
-                          <p className="font-medium">DNS Propagation In Progress</p>
-                          <p className="text-sm text-muted-foreground">3.3% of users may need to clear browser cache</p>
-                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 p-2.5 rounded bg-muted/10 border border-border/20">
+                      <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">DNS Propagation</p>
+                        <p className="text-xs text-muted-foreground truncate">3.3% may need cache clear</p>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
 
-                  {/* Comparison with Manual Response */}
-                  <Card className="border-primary/30">
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Brain className="h-5 w-5 text-primary" />
-                        HELIOS vs Manual Response
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="p-4 rounded-lg bg-primary/5">
-                          <p className="font-semibold text-primary mb-2">HELIOS Automated</p>
-                          <ul className="space-y-1 text-sm">
-                            <li>• Resolution Time: {impactMetrics.mttr}</li>
-                            <li>• Decision Time: 8.5 seconds</li>
-                            <li>• Coordination: Automated</li>
-                            <li>• Human Touchpoints: 2</li>
-                          </ul>
-                        </div>
-                        <div className="p-4 rounded-lg bg-muted/30">
-                          <p className="font-semibold text-muted-foreground mb-2">Traditional Manual</p>
-                          <ul className="space-y-1 text-sm text-muted-foreground">
-                            <li>• Resolution Time: 45+ minutes</li>
-                            <li>• Decision Time: 23 minutes</li>
-                            <li>• Coordination: 4 team calls</li>
-                            <li>• Human Touchpoints: 12+</li>
-                          </ul>
-                        </div>
+                  {/* HELIOS vs Manual */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded bg-muted/10 border border-border/20">
+                      <p className="text-sm font-medium text-foreground/80 mb-2">HELIOS Automated</p>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>• Resolution: {impactMetrics.mttr}</p>
+                        <p>• Decision: 8.5 seconds</p>
+                        <p>• Human Touchpoints: 2</p>
                       </div>
-                      <div className="mt-4 p-3 rounded-lg bg-success/10 text-center">
-                        <p className="text-success font-semibold">68% Faster Resolution with HELIOS</p>
+                    </div>
+                    <div className="p-3 rounded bg-muted/5 border border-border/10">
+                      <p className="text-sm font-medium text-muted-foreground mb-2">Traditional Manual</p>
+                      <div className="text-sm text-muted-foreground/70 space-y-1">
+                        <p>• Resolution: 45+ min</p>
+                        <p>• Decision: 23 min</p>
+                        <p>• Human Touchpoints: 12+</p>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded bg-success/5 border border-success/20 text-center">
+                    <p className="text-success text-sm font-medium">68% Faster Resolution with HELIOS</p>
+                  </div>
                 </>
               )}
             </CardContent>
@@ -1294,62 +1160,44 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
         </DialogContent>
       </Dialog>
 
-      {/* War Room Dialog */}
+      {/* War Room Dialog - Bigger */}
       <Dialog open={warRoomOpen} onOpenChange={(open) => !open && handleReturnToDashboard()}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-primary" />
+        <DialogContent className="max-w-[95vw] w-[1400px] h-[90vh] flex flex-col">
+          <DialogHeader className="pb-4 border-b border-border/30">
+            <DialogTitle className="flex items-center gap-3 text-xl">
+              <Brain className="h-6 w-6 text-primary" />
               HELIOS War Room Coordination
             </DialogTitle>
-            <DialogDescription>
-              HELIOS is assembling the on-call roster to a unified bridge for rapid decision-making.
+            <DialogDescription className="text-sm">
+              Assembling on-call roster for rapid decision-making and strategy simulation.
             </DialogDescription>
           </DialogHeader>
           <div className="absolute top-4 right-12 flex items-center gap-0">
-            <Button variant="ghost" size="icon" onClick={handleMinimizeWarRoom} className="text-muted-foreground">
+            <Button variant="ghost" size="icon" onClick={handleMinimizeWarRoom} className="text-muted-foreground h-8 w-8">
               <Minus className="h-4 w-4" />
-              <span className="sr-only">Minimize</span>
             </Button>
-            {/* The X button is rendered by DialogClose, but we can add our minimize next to it */}
           </div>
 
-
-
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 flex-1 overflow-y-auto pr-2">
-            {/* Unified War Room Bridge */}
-            <div>
-              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                <PhoneCall className="h-4 w-4" />
-                War Room Bridge Assembly
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden pt-4">
+            {/* Left: War Room Bridge Assembly */}
+            <div className="space-y-3 overflow-hidden">
+              <h4 className="text-sm font-semibold flex items-center gap-2 text-foreground">
+                <PhoneCall className="h-4 w-4 text-primary" />
+                Bridge Assembly
               </h4>
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-[calc(100%-100px)] overflow-y-auto pr-1">
                 {Object.entries(typeConfig).map(([typeKey, config]) => (
-                  <div key={typeKey}>
-                    <h5 className="text-sm font-semibold text-muted-foreground my-2 flex items-center gap-2">{config.icon} {config.name}</h5>
+                  <div key={typeKey} className="mb-3">
+                    <h5 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">{config.icon} {config.name}</h5>
                     {participants.filter(p => p.type === typeKey).map((person) => {
                       const currentStatus = statusConfig[person.status];
                       return (
-                        <div
-                          key={person.id}
-                          className={cn(
-                            "flex items-center gap-3 p-2.5 rounded-lg border transition-all duration-300 mb-2",
-                            currentStatus.color,
-                            person.status === 'pending' && "opacity-60",
-                            (person.status === 'calling' || person.status === 'joining') && "ring-2 ring-primary/50"
-                          )}
-                        >
-                          <div className="flex-1">
-                            <div className="font-medium">{person.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {person.role}
-                            </div>
+                        <div key={person.id} className={cn("flex items-center gap-3 p-2.5 rounded-lg border mb-2", currentStatus.color, person.status === 'pending' && "opacity-60")}>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate text-sm">{person.name}</div>
+                            <div className="text-xs text-muted-foreground truncate">{person.role}</div>
                           </div>
-                          <Badge variant="outline" className={cn(
-                            "capitalize w-24 justify-center gap-1.5",
-                            currentStatus.color
-                          )}>
+                          <Badge variant="outline" className={cn("text-xs px-2 py-0.5 gap-1", currentStatus.color)}>
                             {currentStatus.icon}
                             {currentStatus.text}
                           </Badge>
@@ -1359,121 +1207,151 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                   </div>
                 ))}
               </div>
-
-              <div className="mt-4 p-4 rounded-lg border bg-muted/30">
-                <h5 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-                  <UserPlus className="h-4 w-4" />
-                  Add Additional Member
-                </h5>
-                <div className="space-y-2">
-                  <Input
-                    placeholder="Member Name (e.g., John Doe)"
-                    value={newMemberName}
-                    onChange={(e) => warRoomActions.setNewMemberName(e.target.value)}
-                  />
-                  <Input
-                    placeholder="Role / Team (e.g., Database Admin)"
-                    value={newMemberRole}
-                    onChange={(e) => warRoomActions.setNewMemberRole(e.target.value)}
-                  />
-                  <Button size="sm" className="w-full" onClick={warRoomActions.pageNewMember}>
-                    Add Member
-                  </Button>
-                </div>
-              </div>
+              {!warRoomActive && !isAssembling && (
+                <Button size="default" className="w-full gap-2 text-sm h-10" onClick={warRoomActions.startCallingSequence}>
+                  <PhoneCall className="h-4 w-4" />
+                  Assemble Bridge
+                </Button>
+              )}
             </div>
 
-            {/* Event Log & Status */}
-            <div>
-              <div className="mb-4">
-                <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <MessageSquareWarning className="h-4 w-4 text-warning" />
-                  Risks & Considerations
-                </h4>
-                <div className="p-3 rounded-lg border border-warning/30 bg-warning/10 text-sm text-warning-foreground space-y-1">
-                  <p>• **SLA Breach Risk:** {alert.slaRisk}</p>
-                  <p>• **Business Impact:** {alert.businessImpact}</p>
-                </div>
-              </div>
-              <div className="mb-4">
-                <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <Brain className="h-4 w-4 text-primary" />
-                  HELIOS Prioritized Actions
-                </h4>
-                <div className="p-3 rounded-lg border border-primary/30 bg-primary/10 text-sm text-primary-foreground space-y-1">
-                  {HELIOS_ACTIONS.slice(0, heliosTypingIndex).map((action, i) => (
-                    <p key={i} className="animate-in fade-in"> • {action}</p>
-                  ))}
-                </div>
-              </div>
-              {!warRoomActive && !isAssembling && (
-                <div className="my-4">
-                  <Button
-                    className="w-full gap-2"
-                    onClick={warRoomActions.startCallingSequence}
-                    disabled={isAssembling}
-                  >
-                    <PhoneCall className="h-4 w-4" />
-                    Assemble Bridge
-                  </Button>
-                  <p className="text-xs text-center text-muted-foreground mt-2">
-                    This will start calling all required participants to the bridge.
-                  </p>
-                </div>
-              )}
-              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                Event Log
+            {/* Middle: Strategy Simulation - Only visible when war room active */}
+            <div className="space-y-3 overflow-hidden lg:col-span-1">
+              <h4 className="text-sm font-semibold flex items-center gap-2 text-foreground">
+                <Target className="h-4 w-4 text-primary" />
+                Strategy Simulation
               </h4>
-              <div className="space-y-3 h-[200px] overflow-y-auto p-3 rounded-lg border bg-muted/30 pr-4">
-                {warRoomLog.map((log, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <span className="font-mono text-xs text-muted-foreground pt-0.5">
-                      {log.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                    </span>
-                    <p className="text-sm flex-1">{log.message}</p>
+              {warRoomActive ? (
+                <div className="space-y-3 max-h-[calc(100%-60px)] overflow-y-auto pr-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Select strategies to simulate:</span>
+                    <Badge variant="outline" className="text-xs">{selectedStrategies.length} selected</Badge>
                   </div>
-                ))}
-                {isAssembling && !warRoomActive && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Processing...</span>
-                  </div>
-                )}
-              </div>
-              <div className="mt-3">
-                {/* Decision Time Metric */}
-                {warRoomActive ? (
-                  <Card className="border-success/30 bg-success/5">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-2xl font-bold text-success">{decisionTime}s</div>
-                          <div className="text-sm text-muted-foreground">Total Assembly Time</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-semibold text-success">75% Faster</div>
-                          <div className="text-sm text-muted-foreground">vs. Manual Assembly</div>
+                  {alert.details.aiRecommendations.slice(0, 4).map((rec, i) => {
+                    const details = getStrategyDetails(rec);
+                    const isSelected = selectedStrategies.includes(rec);
+                    // Generate mock strategy metrics
+                    const recoveryRate = [96.7, 94.2, 91.8, 89.5][i] || 90;
+                    const probability = details.confidence;
+                    const estimatedTime = ['8 min', '12 min', '15 min', '18 min'][i] || '10 min';
+                    const riskLevel = probability > 93 ? 'Low' : probability > 88 ? 'Medium' : 'High';
+                    return (
+                      <div key={i} className={cn(
+                        "p-3 rounded-lg border cursor-pointer transition-all",
+                        isSelected ? "border-success/50 bg-success/10" : "border-border/50 hover:border-primary/30 hover:bg-muted/20"
+                      )} onClick={() => handleStrategyToggle(rec)}>
+                        <div className="flex items-start gap-3">
+                          <Checkbox checked={isSelected} className="mt-1 h-4 w-4" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-semibold text-sm">{details.title}</span>
+                            </div>
+                            <div className="grid grid-cols-4 gap-2 mt-2">
+                              <div className="text-center p-1.5 rounded bg-muted/30">
+                                <p className="text-sm font-bold text-primary">{probability}%</p>
+                                <p className="text-[10px] text-muted-foreground">Probability</p>
+                              </div>
+                              <div className="text-center p-1.5 rounded bg-muted/30">
+                                <p className="text-sm font-bold text-success">{recoveryRate}%</p>
+                                <p className="text-[10px] text-muted-foreground">Recovery</p>
+                              </div>
+                              <div className="text-center p-1.5 rounded bg-muted/30">
+                                <p className="text-sm font-bold">{estimatedTime}</p>
+                                <p className="text-[10px] text-muted-foreground">Est. Time</p>
+                              </div>
+                              <div className="text-center p-1.5 rounded bg-muted/30">
+                                <p className={cn("text-sm font-bold", riskLevel === 'Low' ? 'text-success' : riskLevel === 'Medium' ? 'text-muted-foreground' : 'text-error')}>{riskLevel}</p>
+                                <p className="text-[10px] text-muted-foreground">Risk</p>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{details.howItWorks}</p>
+                          </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="flex items-center justify-center p-4 rounded-lg bg-muted/50 border">
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    <p className="text-sm text-muted-foreground">
-                      Coordinating bridge...
-                    </p>
+                    );
+                  })}
+                  <Button size="default" onClick={handleSimulateStrategies} disabled={selectedStrategies.length === 0 || simulationRunning} className="w-full gap-2 text-sm h-10">
+                    {simulationRunning ? <><Loader2 className="h-4 w-4 animate-spin" />Simulating...</> : <><Play className="h-4 w-4" />Simulate Selected Strategies</>}
+                  </Button>
+                  {showSimulationResults && simulationResults && (
+                    <Card className="border-success/30 bg-success/5">
+                      <CardContent className="p-3 space-y-3">
+                        <h5 className="text-sm font-semibold text-success">Simulation Results</h5>
+                        <div className="grid grid-cols-4 gap-2">
+                          <div className="text-center p-2 rounded bg-background/50">
+                            <p className="text-lg font-bold text-success">{simulationResults.successProbability.toFixed(0)}%</p>
+                            <p className="text-xs text-muted-foreground">Success Rate</p>
+                          </div>
+                          <div className="text-center p-2 rounded bg-background/50">
+                            <p className="text-lg font-bold text-primary">{simulationResults.recoveryRate}</p>
+                            <p className="text-xs text-muted-foreground">Recovery Rate</p>
+                          </div>
+                          <div className="text-center p-2 rounded bg-background/50">
+                            <p className="text-lg font-bold">{simulationResults.estimatedTime}</p>
+                            <p className="text-xs text-muted-foreground">Est. Time</p>
+                          </div>
+                          <div className="text-center p-2 rounded bg-background/50">
+                            <Badge variant="outline" className={cn("text-xs", simulationResults.riskLevel === 'low' ? 'border-success/50 text-success' : simulationResults.riskLevel === 'medium' ? 'border-border text-muted-foreground' : 'border-error/50 text-error')}>
+                              {simulationResults.riskLevel.toUpperCase()}
+                            </Badge>
+                            <p className="text-xs text-muted-foreground mt-1">Risk Level</p>
+                          </div>
+                        </div>
+                        <Button size="sm" variant="outline" onClick={handleResetSimulation} className="w-full gap-2 text-xs">
+                          <RotateCcw className="h-3.5 w-3.5" />Reset Simulation
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-48 text-muted-foreground rounded-lg border border-dashed border-border/50 bg-muted/10">
+                  <Target className="h-10 w-10 mb-3 opacity-30" />
+                  <p className="text-sm">Assemble bridge to access</p>
+                  <p className="text-xs">strategy simulation</p>
+                </div>
+              )}
+            </div>
+
+            {/* Right: Event Log */}
+            <div className="space-y-3 overflow-hidden">
+              <h4 className="text-sm font-semibold flex items-center gap-2 text-foreground">
+                <Activity className="h-4 w-4 text-primary" />
+                Event Log
+              </h4>
+              <div className="space-y-1.5 h-[280px] overflow-y-auto p-3 rounded-lg border bg-muted/20 text-sm">
+                {warRoomLog.map((log, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{log.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                    <p className="text-xs flex-1">{log.message}</p>
                   </div>
-                )}
+                ))}
               </div>
+              {warRoomActive && (
+                <Card className="border-success/30 bg-success/5">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-2xl font-bold text-success">{decisionTime}s</div>
+                        <div className="text-xs text-muted-foreground">Assembly Time</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-semibold text-success">75% Faster</div>
+                        <div className="text-xs text-muted-foreground">vs. Manual Process</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
-          <DialogFooter className="mt-4">
-            <Button variant="destructive" onClick={handleEndWarRoom}>
+
+          {/* End War Room Button - Centered at bottom */}
+          <div className="pt-4 flex justify-center border-t border-border/30">
+            <Button variant="destructive" size="lg" onClick={handleEndWarRoom} className="px-8">
               End War Room
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
