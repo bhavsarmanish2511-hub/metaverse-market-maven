@@ -27,15 +27,15 @@ export function QuantumStatusIndicator() {
     <div className="flex items-center gap-2">
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge 
-              variant="outline" 
+          {/* <TooltipTrigger asChild>
+            <Badge
+              variant="outline"
               className="bg-quantum-primary/10 text-quantum-primary border-quantum-primary/30 hover:bg-quantum-primary/20 transition-all cursor-pointer"
             >
               <Shield className="h-3 w-3 mr-1 animate-quantum-shield" />
               Quantum Safe
             </Badge>
-          </TooltipTrigger>
+          </TooltipTrigger> */}
           <TooltipContent>
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between gap-4">
@@ -61,27 +61,27 @@ export function QuantumStatusIndicator() {
         </Tooltip>
 
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge 
-              variant="outline" 
+          {/* <TooltipTrigger asChild>
+            <Badge
+              variant="outline"
               className="bg-quantum-secondary/10 text-quantum-secondary border-quantum-secondary/30 hover:bg-quantum-secondary/20 transition-all cursor-pointer"
             >
               <Zap className="h-3 w-3 mr-1 animate-pulse-glow" />
               Post-Quantum
             </Badge>
-          </TooltipTrigger>
+          </TooltipTrigger> */}
           <TooltipContent>
             <p className="text-xs">Lattice-based cryptography active</p>
           </TooltipContent>
         </Tooltip>
 
         <Tooltip>
-          <TooltipTrigger asChild>
+          {/* <TooltipTrigger asChild>
             <div className="flex items-center gap-1">
               <div className="h-2 w-2 rounded-full bg-quantum-accent animate-pulse-glow"></div>
               <span className="text-xs text-quantum-accent font-semibold">QKD</span>
             </div>
-          </TooltipTrigger>
+          </TooltipTrigger> */}
           <TooltipContent>
             <p className="text-xs">Quantum Key Distribution active</p>
           </TooltipContent>

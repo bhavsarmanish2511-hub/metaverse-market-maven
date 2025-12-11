@@ -1,20 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { IRCAlert, SimulationScenario, WorkflowStep } from '@/lib/ircAlertData';
 import {
-  ArrowLeft, AlertTriangle, Brain, Play, Zap, GitBranch, FileText,
-  CheckCircle, Clock, XCircle, Loader2, Shield, Target, Activity,
-  Server, MapPin, DollarSign, ChevronRight, Pause,
-  TrendingUp, BarChart3, Eye, Check, ArrowRight
+  ArrowLeft, AlertTriangle, Brain, Play, Zap, GitBranch, FileText, MessageSquareWarning,
+  CheckCircle, Clock, XCircle, Loader2, Shield, Target, Activity, Minus, X,
+  Server, MapPin, DollarSign, ChevronRight, Pause, Users, UserCheck, Building2, Headphones, PhoneCall, PhoneForwarded, UserPlus, CircleDotDashed,
+  TrendingUp, Eye, ArrowRight, BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
+import { cn, playHeliosNotification } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { useWarRoom, ParticipantStatus, ParticipantType, WarRoomParticipant } from '@/hooks/useWarRoom';
 
 interface IRCAlertDetailProps {
   alert: IRCAlert;
@@ -43,10 +45,10 @@ const riskColors = {
 };
 
 // AI Strategy details with deep dive info
-const aiStrategyDetails: Record<string, { 
-  title: string; 
-  confidence: number; 
-  howItWorks: string; 
+const aiStrategyDetails: Record<string, {
+  title: string;
+  confidence: number;
+  howItWorks: string;
   resolutionPath: string[];
   estimatedImpact: string;
   riskMitigation: string;
@@ -314,13 +316,29 @@ interface SimulationStep {
   duration: number;
 }
 
-interface ExecutionAgent {
-  name: string;
-  status: 'idle' | 'active' | 'completed';
-  currentTask: string;
-  progress: number;
-}
+const allParticipants: WarRoomParticipant[] = [
+  // Approval Chain
+  { id: 'approver-1', name: 'Alex Chen', role: 'Senior DevOps Engineer', type: 'approval', status: 'pending' },
+  { id: 'approver-2', name: 'Sarah Mitchell', role: 'Director of Operations', type: 'approval', status: 'pending' },
+  { id: 'approver-3', name: 'Michael Torres', role: 'VP of Infrastructure', type: 'approval', status: 'pending' },
+  // Team Coordination
+  { id: 'coord-1', name: 'David Kim', role: 'Engineering Lead', type: 'coordination', status: 'pending' },
+  { id: 'coord-2', name: 'Emily Watson', role: 'Customer Success Lead', type: 'coordination', status: 'pending' },
+  { id: 'coord-3', name: 'Robert Chen', role: 'Finance Lead', type: 'coordination', status: 'pending' },
+  { id: 'coord-4', name: 'Lisa Park', role: 'Security Lead', type: 'coordination', status: 'pending' },
+];
 
+const typeConfig = {
+  approval: { name: 'Approval Chain', icon: <UserCheck className="h-4 w-4" /> },
+  coordination: { name: 'Team Coordination', icon: <Users className="h-4 w-4" /> },
+};
+
+const statusConfig: Record<ParticipantStatus, { text: string; icon: JSX.Element; color: string }> = {
+  pending: { text: 'Standby', icon: <CircleDotDashed className="h-3 w-3" />, color: 'bg-muted/80 border-muted-foreground/20' },
+  calling: { text: 'Calling...', icon: <PhoneCall className="h-3 w-3 animate-pulse" />, color: 'bg-primary/10 text-primary border-primary/30' },
+  joining: { text: 'Joining...', icon: <PhoneForwarded className="h-3 w-3" />, color: 'bg-primary/10 text-primary border-primary/30' },
+  joined: { text: 'Joined', icon: <CheckCircle className="h-3 w-3" />, color: 'bg-success/10 text-success border-success/30' },
+};
 
 export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -330,7 +348,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
   const [selectedSimulation, setSelectedSimulation] = useState<string | null>(null);
   const [workflowTriggered, setWorkflowTriggered] = useState(false);
   const [actionsTaken, setActionsTaken] = useState<string[]>([]);
-  
+
   // New states for enhanced functionality
   const [deepDiveOpen, setDeepDiveOpen] = useState(false);
   const [selectedStrategy, setSelectedStrategy] = useState<string | null>(null);
@@ -342,14 +360,31 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
   const [executionProgress, setExecutionProgress] = useState(0);
   const [impactMetrics, setImpactMetrics] = useState<any>(null);
 
+  const {
+    isOpen: warRoomOpen,
+    isMinimized: warRoomMinimized,
+    setIsMinimized: setWarRoomMinimized,
+    closeDialog: closeWarRoomDialog,
+    participants,
+    isActive: warRoomActive,
+    assemblyTime: decisionTime,
+    isAssembling,
+    newMemberName,
+    newMemberRole,
+    heliosTypingIndex,
+    log: warRoomLog,
+    HELIOS_ACTIONS,
+    initiate: initiateWarRoom,
+    ...warRoomActions
+  } = useWarRoom();
   const handleTakeAction = (action: string) => {
     setActionsTaken(prev => [...prev, action]);
     toast.success(`Action initiated: ${action}`);
   };
 
   const handleStrategyToggle = (strategy: string) => {
-    setSelectedStrategies(prev => 
-      prev.includes(strategy) 
+    setSelectedStrategies(prev =>
+      prev.includes(strategy)
         ? prev.filter(s => s !== strategy)
         : [...prev, strategy]
     );
@@ -368,7 +403,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
 
     setSimulationRunning(true);
     setShowSimulationResults(false);
-    
+
     const steps: SimulationStep[] = [
       { id: 1, name: 'Analyzing selected strategies', status: 'pending', duration: 1000 },
       { id: 2, name: 'Building simulation environment', status: 'pending', duration: 1200 },
@@ -377,18 +412,18 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
       { id: 5, name: 'Validating resolution paths', status: 'pending', duration: 800 },
       { id: 6, name: 'Generating final report', status: 'pending', duration: 600 },
     ];
-    
+
     setSimulationSteps(steps);
     toast.info('Starting strategy simulation...');
 
     for (let i = 0; i < steps.length; i++) {
-      setSimulationSteps(prev => prev.map((s, idx) => 
+      setSimulationSteps(prev => prev.map((s, idx) =>
         idx === i ? { ...s, status: 'running' } : s
       ));
 
       await new Promise(resolve => setTimeout(resolve, steps[i].duration));
 
-      setSimulationSteps(prev => prev.map((s, idx) => 
+      setSimulationSteps(prev => prev.map((s, idx) =>
         idx === i ? { ...s, status: 'completed' } : s
       ));
     }
@@ -447,9 +482,9 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
 
     for (let i = 0; i < agentTasks.length; i++) {
       const { agent, task, duration } = agentTasks[i];
-      
-      setExecutionAgents(prev => prev.map((a, idx) => 
-        idx === agent 
+
+      setExecutionAgents(prev => prev.map((a, idx) =>
+        idx === agent
           ? { ...a, status: 'active', currentTask: task, progress: 0 }
           : { ...a, status: a.progress === 100 ? 'completed' : a.status }
       ));
@@ -458,20 +493,20 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
       const steps = 10;
       for (let j = 0; j <= steps; j++) {
         await new Promise(resolve => setTimeout(resolve, duration / steps));
-        setExecutionAgents(prev => prev.map((a, idx) => 
+        setExecutionAgents(prev => prev.map((a, idx) =>
           idx === agent ? { ...a, progress: (j / steps) * 100 } : a
         ));
         setExecutionProgress(((i + j / steps) / agentTasks.length) * 100);
       }
 
-      setExecutionAgents(prev => prev.map((a, idx) => 
+      setExecutionAgents(prev => prev.map((a, idx) =>
         idx === agent ? { ...a, status: 'completed', progress: 100 } : a
       ));
     }
 
     setExecutionActive(false);
     setExecutionProgress(100);
-    
+
     // Generate impact metrics
     setImpactMetrics({
       serviceRestoration: 97.3,
@@ -485,6 +520,25 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
     toast.success('Execution complete! View Impact tab for results.');
   };
 
+  const handleEndWarRoom = useCallback(() => {
+    warRoomActions.resetState();
+    setActiveTab('decision');
+    toast.info("War Room session has ended. You can now select another option.");
+  }, [warRoomActions, setActiveTab]);
+
+  const handleReturnToDashboard = useCallback(() => {
+    closeWarRoomDialog();
+  }, [closeWarRoomDialog]);
+
+  const handleMinimizeWarRoom = useCallback(() => {
+    closeWarRoomDialog();
+    setWarRoomMinimized(true);
+  }, [closeWarRoomDialog, setWarRoomMinimized]);
+
+
+  const handleInitiateWarRoom = useCallback(() => {
+    initiateWarRoom();
+  }, [initiateWarRoom]);
 
   const getStrategyDetails = (strategy: string) => {
     return aiStrategyDetails[strategy] || {
@@ -499,6 +553,27 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Minimized War Room Widget */}
+      {warRoomActive && warRoomMinimized && (
+        <div
+          className="fixed bottom-4 right-4 z-50 p-3 rounded-lg shadow-lg bg-card border border-primary/30 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => {
+            setWarRoomMinimized(false);
+            initiateWarRoom(); // This re-opens the dialog
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-primary">
+              <Brain className="h-5 w-5" />
+              <span className="font-semibold">War Room Active</span>
+            </div>
+            <Badge variant="outline" className="bg-success/10 text-success">
+              {decisionTime}s
+            </Badge>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="outline" onClick={onBack} className="gap-2">
@@ -570,7 +645,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
           </TabsTrigger>
           <TabsTrigger value="ai" className="text-xs px-2 py-2">
             <Brain className="h-3 w-3 mr-1" />
-            AI Recs
+            AI recommendations
           </TabsTrigger>
           <TabsTrigger value="decision" className="text-xs px-2 py-2">
             <Target className="h-3 w-3 mr-1" />
@@ -614,7 +689,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                   <Badge>{phaseLabels[alert.phase]}</Badge>
                 </div>
               </div>
-              
+
               <div className="p-3 rounded-lg border border-error/30 bg-error/5">
                 <h4 className="text-sm font-medium text-muted-foreground mb-1">SLA Risk</h4>
                 <p className="text-error font-medium">{alert.slaRisk}</p>
@@ -678,9 +753,9 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                       </div>
                       <p className="text-sm text-muted-foreground">{rec}</p>
                     </div>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => handleDeepDive(rec)}
                       className="gap-1"
                     >
@@ -715,23 +790,23 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                   <h4 className="font-semibold">Select Strategies to Simulate</h4>
                   <Badge variant="outline">{selectedStrategies.length} selected</Badge>
                 </div>
-                
+
                 {alert.details.aiRecommendations.map((rec, i) => {
                   const details = getStrategyDetails(rec);
                   const isSelected = selectedStrategies.includes(rec);
-                  
+
                   return (
-                    <div 
-                      key={i} 
+                    <div
+                      key={i}
                       className={cn(
                         "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all",
-                        isSelected 
-                          ? "border-primary bg-primary/10" 
+                        isSelected
+                          ? "border-primary bg-primary/10"
                           : "border-border/50 hover:border-primary/50"
                       )}
                       onClick={() => handleStrategyToggle(rec)}
                     >
-                      <Checkbox 
+                      <Checkbox
                         checked={isSelected}
                         className="mt-0.5"
                       />
@@ -749,7 +824,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                 })}
 
                 {/* Simulate Button */}
-                <Button 
+                <Button
                   onClick={handleSimulateStrategies}
                   disabled={selectedStrategies.length === 0 || simulationRunning}
                   className="w-full gap-2"
@@ -768,6 +843,15 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                   )}
                 </Button>
               </div>
+              <div>
+                <h4 className="font-semibold mb-2">SOC/NOC Functionality</h4>
+                <p className="text-muted-foreground">{alert.details.decision.socNocFunctionality}</p>
+              </div>
+              {/* Challenge Today - Commented out as requested */}
+              {/* <div className="p-4 rounded-lg border border-error/30 bg-error/5">
+                <h4 className="font-semibold mb-2 text-error">Challenge Today</h4>
+                <p className="text-muted-foreground">{alert.details.decision.challengeToday}</p>
+              </div> */}
 
               {/* Simulation Progress */}
               {simulationRunning && simulationSteps.length > 0 && (
@@ -845,7 +929,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                       ))}
                     </div>
 
-                    <Button 
+                    <Button
                       onClick={handleExecuteStrategies}
                       className="w-full gap-2"
                       size="lg"
@@ -858,6 +942,49 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                 </Card>
               )}
 
+              {/* War Room Section */}
+              <div className="pt-4 border-t border-border/50">
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => handleTakeAction('Approve Failover')} className="gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Approve Failover
+                  </Button>
+                  <Button variant="outline" onClick={() => handleTakeAction('Override Prioritization')}>
+                    Override Prioritization
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleInitiateWarRoom}
+                    className={cn(
+                      "gap-2 transition-all w-[180px]", // Fixed width for consistency
+                      warRoomActive ? "bg-success text-success-foreground cursor-not-allowed" : "border-primary/50 hover:bg-primary/10"
+                    )}
+                    // Disable if assembling or if the war room is fully active.
+                    disabled={isAssembling || warRoomActive}
+                  >
+                    {warRoomActive ? <><CheckCircle className="h-4 w-4" /> War Room Live</> : (isAssembling ? <><Loader2 className="h-4 w-4 animate-spin" /> Assembling...</> : <><Users className="h-4 w-4" /> Initiate War Room</>)}
+                  </Button>
+                </div>
+
+                {warRoomActive && (
+                  <Card className="mt-4 border-success/30 bg-success/5">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-5 w-5 text-success" />
+                          <span className="font-semibold text-success">War Room Active</span>
+                        </div>
+                        <Badge variant="outline" className="bg-success/10 text-success">
+                          Decision Time: {decisionTime}s
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        All team leads joined and coordinated. Ready for execution.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -892,7 +1019,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                   {/* Agent Workflow Visualization */}
                   <div className="space-y-3">
                     {executionAgents.map((agent, i) => (
-                      <div 
+                      <div
                         key={i}
                         className={cn(
                           "p-4 rounded-lg border transition-all",
@@ -950,7 +1077,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                             </p>
                           </div>
                         </div>
-                        <Button 
+                        <Button
                           onClick={() => setActiveTab('impact')}
                           variant="outline"
                           className="mt-4 gap-2"
@@ -1167,6 +1294,188 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
         </DialogContent>
       </Dialog>
 
+      {/* War Room Dialog */}
+      <Dialog open={warRoomOpen} onOpenChange={(open) => !open && handleReturnToDashboard()}>
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-primary" />
+              HELIOS War Room Coordination
+            </DialogTitle>
+            <DialogDescription>
+              HELIOS is assembling the on-call roster to a unified bridge for rapid decision-making.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="absolute top-4 right-12 flex items-center gap-0">
+            <Button variant="ghost" size="icon" onClick={handleMinimizeWarRoom} className="text-muted-foreground">
+              <Minus className="h-4 w-4" />
+              <span className="sr-only">Minimize</span>
+            </Button>
+            {/* The X button is rendered by DialogClose, but we can add our minimize next to it */}
+          </div>
+
+
+
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 flex-1 overflow-y-auto pr-2">
+            {/* Unified War Room Bridge */}
+            <div>
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                <PhoneCall className="h-4 w-4" />
+                War Room Bridge Assembly
+              </h4>
+              <div className="space-y-2">
+                {Object.entries(typeConfig).map(([typeKey, config]) => (
+                  <div key={typeKey}>
+                    <h5 className="text-sm font-semibold text-muted-foreground my-2 flex items-center gap-2">{config.icon} {config.name}</h5>
+                    {participants.filter(p => p.type === typeKey).map((person) => {
+                      const currentStatus = statusConfig[person.status];
+                      return (
+                        <div
+                          key={person.id}
+                          className={cn(
+                            "flex items-center gap-3 p-2.5 rounded-lg border transition-all duration-300 mb-2",
+                            currentStatus.color,
+                            person.status === 'pending' && "opacity-60",
+                            (person.status === 'calling' || person.status === 'joining') && "ring-2 ring-primary/50"
+                          )}
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium">{person.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {person.role}
+                            </div>
+                          </div>
+                          <Badge variant="outline" className={cn(
+                            "capitalize w-24 justify-center gap-1.5",
+                            currentStatus.color
+                          )}>
+                            {currentStatus.icon}
+                            {currentStatus.text}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 p-4 rounded-lg border bg-muted/30">
+                <h5 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Add Additional Member
+                </h5>
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Member Name (e.g., John Doe)"
+                    value={newMemberName}
+                    onChange={(e) => warRoomActions.setNewMemberName(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Role / Team (e.g., Database Admin)"
+                    value={newMemberRole}
+                    onChange={(e) => warRoomActions.setNewMemberRole(e.target.value)}
+                  />
+                  <Button size="sm" className="w-full" onClick={warRoomActions.pageNewMember}>
+                    Add Member
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Event Log & Status */}
+            <div>
+              <div className="mb-4">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <MessageSquareWarning className="h-4 w-4 text-warning" />
+                  Risks & Considerations
+                </h4>
+                <div className="p-3 rounded-lg border border-warning/30 bg-warning/10 text-sm text-warning-foreground space-y-1">
+                  <p>• **SLA Breach Risk:** {alert.slaRisk}</p>
+                  <p>• **Business Impact:** {alert.businessImpact}</p>
+                </div>
+              </div>
+              <div className="mb-4">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Brain className="h-4 w-4 text-primary" />
+                  HELIOS Prioritized Actions
+                </h4>
+                <div className="p-3 rounded-lg border border-primary/30 bg-primary/10 text-sm text-primary-foreground space-y-1">
+                  {HELIOS_ACTIONS.slice(0, heliosTypingIndex).map((action, i) => (
+                    <p key={i} className="animate-in fade-in"> • {action}</p>
+                  ))}
+                </div>
+              </div>
+              {!warRoomActive && !isAssembling && (
+                <div className="my-4">
+                  <Button
+                    className="w-full gap-2"
+                    onClick={warRoomActions.startCallingSequence}
+                    disabled={isAssembling}
+                  >
+                    <PhoneCall className="h-4 w-4" />
+                    Assemble Bridge
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground mt-2">
+                    This will start calling all required participants to the bridge.
+                  </p>
+                </div>
+              )}
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Event Log
+              </h4>
+              <div className="space-y-3 h-[200px] overflow-y-auto p-3 rounded-lg border bg-muted/30 pr-4">
+                {warRoomLog.map((log, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <span className="font-mono text-xs text-muted-foreground pt-0.5">
+                      {log.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </span>
+                    <p className="text-sm flex-1">{log.message}</p>
+                  </div>
+                ))}
+                {isAssembling && !warRoomActive && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Processing...</span>
+                  </div>
+                )}
+              </div>
+              <div className="mt-3">
+                {/* Decision Time Metric */}
+                {warRoomActive ? (
+                  <Card className="border-success/30 bg-success/5">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-2xl font-bold text-success">{decisionTime}s</div>
+                          <div className="text-sm text-muted-foreground">Total Assembly Time</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-semibold text-success">75% Faster</div>
+                          <div className="text-sm text-muted-foreground">vs. Manual Assembly</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="flex items-center justify-center p-4 rounded-lg bg-muted/50 border">
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <p className="text-sm text-muted-foreground">
+                      Coordinating bridge...
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="destructive" onClick={handleEndWarRoom}>
+              End War Room
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -154,7 +154,7 @@ export function BiometricAuthModal({ open, onClose, onSuccess, roleName = 'User'
             </div>
             <div className="flex items-center justify-center gap-2">
               <Zap className="h-3 w-3 text-primary" />
-              <p className="text-login-highlight text-xs tracking-wide">BIOMETRIC VERIFICATION REQUIRED</p>
+              <p className="text-login-highlight text-xs tracking-wide">AUTHENTICATION REQUIRED</p>
             </div>
           </div>
 

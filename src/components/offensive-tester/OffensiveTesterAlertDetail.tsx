@@ -329,7 +329,7 @@ export function OffensiveTesterAlertDetail({ alert, onBack }: OffensiveTesterAle
           </TabsTrigger>
           <TabsTrigger value="ai" className="text-xs px-2 py-2">
             <Brain className="h-3 w-3 mr-1" />
-            AI Recs
+            AI recommendations
           </TabsTrigger>
           <TabsTrigger value="decision" className="text-xs px-2 py-2">
             <Target className="h-3 w-3 mr-1" />

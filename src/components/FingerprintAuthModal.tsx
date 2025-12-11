@@ -93,7 +93,7 @@ export function FingerprintAuthModal({
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-login-glow to-transparent animate-[laser-sweep_3s_ease-in-out_infinite]" />
             </div>
             <p className="text-login-highlight text-sm tracking-wide">
-              BIOMETRIC VERIFICATION REQUIRED
+              AUTHENTICATION REQUIRED
             </p>
           </div>
 
