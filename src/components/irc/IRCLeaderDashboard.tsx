@@ -7,17 +7,24 @@ import { cn } from '@/lib/utils';
 import { IRCAlertDetail } from './IRCAlertDetail';
 
 const severityStyles = {
-  critical: 'bg-error/10 border-error/30',
-  high: 'bg-muted/20 border-border/40',
-  medium: 'bg-muted/10 border-border/30',
-  low: 'bg-muted/5 border-border/20',
+  critical: 'bg-red-950/40 border-red-500/40 hover:border-red-500/60',
+  high: 'bg-orange-950/30 border-orange-500/30 hover:border-orange-500/50',
+  medium: 'bg-amber-950/20 border-amber-500/25 hover:border-amber-500/40',
+  low: 'bg-slate-800/20 border-slate-500/20 hover:border-slate-500/30',
 };
 
 const statusStyles = {
-  active: 'bg-error/80 text-error-foreground',
-  investigating: 'bg-muted/60 text-foreground',
-  mitigating: 'bg-muted/60 text-foreground',
-  resolved: 'bg-muted/40 text-muted-foreground',
+  active: 'bg-red-500 text-white font-semibold shadow-sm shadow-red-500/30',
+  investigating: 'bg-amber-500 text-amber-950 font-semibold shadow-sm shadow-amber-500/30',
+  mitigating: 'bg-blue-500 text-white font-semibold shadow-sm shadow-blue-500/30',
+  resolved: 'bg-emerald-500/80 text-white font-medium',
+};
+
+const severityBadgeStyles = {
+  critical: 'text-red-400 border-red-500/40 bg-red-950/50',
+  high: 'text-orange-400 border-orange-500/40 bg-orange-950/50',
+  medium: 'text-amber-400 border-amber-500/40 bg-amber-950/50',
+  low: 'text-slate-400 border-slate-500/30 bg-slate-800/50',
 };
 
 export function IRCLeaderDashboard() {
@@ -128,16 +135,16 @@ export function IRCLeaderDashboard() {
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 <div className="space-y-2 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={cn(statusStyles[alert.status], "text-xs px-2 py-0.5")}>
-                      {alert.status.toUpperCase()}
+                    <Badge className={cn(statusStyles[alert.status], "text-xs px-2.5 py-0.5 uppercase tracking-wide")}>
+                      {alert.status}
                     </Badge>
                     <Badge variant="outline" className={cn(
-                      "uppercase text-xs px-2 py-0.5",
-                      alert.severity === 'critical' && "text-error border-error/30"
+                      "uppercase text-xs px-2.5 py-0.5 font-semibold tracking-wide",
+                      severityBadgeStyles[alert.severity]
                     )}>
                       {alert.severity}
                     </Badge>
-                    <span className="text-xs font-mono text-muted-foreground">{alert.id}</span>
+                    <span className="text-xs font-mono text-muted-foreground/70">{alert.id}</span>
                   </div>
                   <h3 className="font-semibold text-base text-foreground/90">{alert.title}</h3>
                   <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
