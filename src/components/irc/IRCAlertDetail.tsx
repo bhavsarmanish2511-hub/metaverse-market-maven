@@ -1311,10 +1311,10 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                   {warRoomActive && (
                     <div className="flex items-center gap-3">
                       <Badge variant="outline" className="text-xs">{selectedStrategies.length} selected</Badge>
-                      <Button 
-                        size="sm" 
-                        onClick={handleSimulateStrategies} 
-                        disabled={selectedStrategies.length === 0 || simulationRunning} 
+                      <Button
+                        size="sm"
+                        onClick={handleSimulateStrategies}
+                        disabled={selectedStrategies.length === 0 || simulationRunning}
                         className="gap-2 h-8 text-xs"
                       >
                         {simulationRunning ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Simulating...</> : <><Play className="h-3.5 w-3.5" />Simulate</>}
@@ -1322,7 +1322,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                     </div>
                   )}
                 </div>
-                
+
                 {warRoomActive ? (
                   <div className="space-y-4">
                     {/* Strategy Cards Grid */}
