@@ -196,7 +196,7 @@ export function AppSidebar() {
         {/* IRC Leader Section */}
         {showIRC && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-error">
+            <SidebarGroupLabel className="text-muted-foreground">
               <Shield className="h-4 w-4" />
               {open && <span>Incident Command</span>}
             </SidebarGroupLabel>
@@ -207,8 +207,8 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild>
                       <NavLink
                         to={item.url}
-                        className="hover:bg-error/10 hover:text-error"
-                        activeClassName="bg-error/10 text-error font-medium border-l-2 border-error"
+                        className="hover:bg-muted/50 hover:text-foreground"
+                        activeClassName="bg-muted/50 text-foreground font-medium border-l-2 border-foreground/50"
                       >
                         <item.icon className="h-4 w-4" />
                         {open && <span>{item.title}</span>}

@@ -4,7 +4,7 @@ import {
   ArrowLeft, AlertTriangle, Brain, Play, Zap, GitBranch, FileText, MessageSquareWarning,
   CheckCircle, Clock, XCircle, Loader2, Shield, Target, Activity, Minus, X,
   Server, MapPin, DollarSign, ChevronRight, Pause, Users, UserCheck, Building2, Headphones, PhoneCall, PhoneForwarded, UserPlus, CircleDotDashed,
-  TrendingUp, Eye, ArrowRight, BarChart3, RotateCcw
+  TrendingUp, Eye, ArrowRight, BarChart3, RotateCcw, ScrollText, Download, Copy, AlertOctagon, ShieldAlert, Settings2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,10 +17,22 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useWarRoom, ParticipantStatus, ParticipantType, WarRoomParticipant } from '@/hooks/useWarRoom';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+
+interface ResolvedMetrics {
+  mttr: string;
+  revenueProtected: string;
+  transactionsRecovered: number;
+  serviceRestoration: number;
+}
 
 interface IRCAlertDetailProps {
   alert: IRCAlert;
   onBack: () => void;
+  onStatusUpdate?: (alertId: string, newStatus: string, metrics?: ResolvedMetrics) => void;
 }
 
 interface ExecutionAgent {
@@ -28,6 +40,17 @@ interface ExecutionAgent {
   status: 'idle' | 'active' | 'completed';
   currentTask: string;
   progress: number;
+}
+
+// Activity Log Types
+interface ActivityLogEntry {
+  id: string;
+  timestamp: Date;
+  category: 'overview' | 'ai' | 'decision' | 'execution' | 'impact' | 'system' | 'override';
+  action: string;
+  details?: string;
+  actor: 'user' | 'helios' | 'system';
+  severity: 'info' | 'warning' | 'success' | 'error';
 }
 
 const phaseLabels = {
@@ -51,6 +74,26 @@ const riskColors = {
   high: 'text-error border-error/30 bg-error/10',
 };
 
+const categoryIcons = {
+  overview: <FileText className="h-3 w-3" />,
+  ai: <Brain className="h-3 w-3" />,
+  decision: <Target className="h-3 w-3" />,
+  execution: <Zap className="h-3 w-3" />,
+  impact: <TrendingUp className="h-3 w-3" />,
+  system: <Settings2 className="h-3 w-3" />,
+  override: <AlertOctagon className="h-3 w-3" />,
+};
+
+const categoryColors = {
+  overview: 'bg-blue-500/20 text-blue-400',
+  ai: 'bg-purple-500/20 text-purple-400',
+  decision: 'bg-amber-500/20 text-amber-400',
+  execution: 'bg-emerald-500/20 text-emerald-400',
+  impact: 'bg-cyan-500/20 text-cyan-400',
+  system: 'bg-slate-500/20 text-slate-400',
+  override: 'bg-red-500/20 text-red-400',
+};
+
 // AI Strategy details with deep dive info
 const aiStrategyDetails: Record<string, {
   title: string;
@@ -60,80 +103,80 @@ const aiStrategyDetails: Record<string, {
   estimatedImpact: string;
   riskMitigation: string;
 }> = {
-  'Recommend immediate failover to US-West-2 based on 94.7% historical success rate for similar incidents': {
-    title: 'Immediate Failover Strategy',
-    confidence: 94.7,
-    howItWorks: 'This strategy leverages automated failover scripts to redirect all traffic from the degraded US-East-1 region to the healthy US-West-2 region. The system will spin up pre-configured containers, update DNS records, and promote database replicas.',
+  'Execute immediate failover to US-West-2 - 94.7% historical success rate for AZ-level outages': {
+    title: 'Full Regional Failover',
+    confidence: 87.3,
+    howItWorks: 'Route 53 Application Recovery Controller triggers coordinated failover across all services. Aurora Global Database promotes US-West-2 read replica to primary writer (RTO <60s, RPO 0). ALB target groups update to US-West-2 ECS tasks. CloudFront origins switch to Oregon edge locations.',
     resolutionPath: [
-      'Initiate container spin-up in US-West-2 (847 containers)',
-      'Update DNS TTL to 60 seconds for faster propagation',
-      'Promote read replicas to primary in secondary region',
-      'Redirect load balancer traffic to healthy endpoints',
-      'Validate health checks across all services',
-      'Complete traffic steering to US-West-2'
+      'Route 53 ARC initiates failover sequence',
+      'Aurora Global DB promotes replica (45-60s)',
+      'ECS services register with new ALB targets (2-3min)',
+      'Health checks validate endpoint availability',
+      'DNS TTL expiration completes traffic shift',
+      'Monitor for 5 minutes post-failover'
     ],
     estimatedImpact: 'Full service restoration within 15 minutes. Expected to recover 96.7% of failed transactions.',
     riskMitigation: 'Automatic rollback triggers if health checks fail. Database sync verified before traffic switch.'
   },
-  'Suggest prioritizing EU payment gateway (€847K/hour) over APAC (¥423K/hour) if partial failover required': {
-    title: 'Prioritized Regional Recovery',
-    confidence: 91.2,
-    howItWorks: 'Revenue-optimized partial failover that prioritizes high-value regions. EU processing takes precedence based on real-time revenue impact analysis. APAC follows with 3-minute delay to ensure stability.',
+  'Prioritize EU-West-1 traffic routing first (currently €1.2M/hour peak) before AP-Southeast-1 (¥890K/hour)': {
+    title: 'Prioritized EU/APAC Traffic Steering',
+    confidence: 94.6,
+    howItWorks: 'Route 53 weighted routing policies redirect EU traffic to EU-Central-1 (Frankfurt) and APAC traffic to AP-Northeast-1 (Tokyo). US-East-1 traffic gets rate-limited to 30% capacity via ALB rules. Preserves revenue in peak regions while minimizing impact during US off-peak.',
     resolutionPath: [
-      'Analyze real-time revenue by region',
-      'Initiate EU payment gateway failover first',
-      'Validate EU transaction processing',
-      'Begin APAC failover sequence',
-      'Monitor cross-region latency',
-      'Confirm all regional gateways operational'
+      'Update Route 53 weighted policies (EU: 100% → Frankfurt)',
+      'Apply ALB rate limiting rules for US traffic',
+      'Scale EU-Central-1 and AP-Northeast-1 by 200%',
+      'Monitor latency and error rates per region',
+      'Gradual US traffic migration after EU/APAC stable',
+      'Full failover if US-East-1 degrades further'
     ],
     estimatedImpact: 'EU recovery in 8 minutes, APAC in 11 minutes. Revenue protection: €1.2M saved.',
     riskMitigation: 'Regional isolation prevents cascade failures. Independent rollback per region.'
   },
-  'Pre-emptively scale authentication services by 340% based on post-failover traffic patterns': {
-    title: 'Proactive Auth Scaling',
-    confidence: 88.5,
-    howItWorks: 'Based on historical failover patterns, authentication services experience a 340% traffic spike as users retry failed sessions. This strategy pre-scales auth infrastructure before the surge hits.',
+  'Pre-scale US-West-2 ECS services by 340% based on incoming traffic redistribution': {
+    title: 'Proactive ECS Auto-Scaling',
+    confidence: 91.8,
+    howItWorks: 'Pre-emptively scale ECS Fargate tasks in US-West-2 before traffic arrives. Uses predictive scaling based on current US-East-1 traffic patterns. Prevents cold-start latency and ensures capacity is ready when DNS failover completes.',
     resolutionPath: [
-      'Analyze historical post-failover traffic patterns',
-      'Provision additional auth pods (current + 340%)',
-      'Update connection pool limits',
-      'Pre-warm authentication caches',
-      'Enable enhanced session recovery',
-      'Monitor auth success rates'
+      'Calculate required capacity from US-East-1 metrics',
+      'Provision ECS tasks (current × 3.4)',
+      'Pre-warm application caches',
+      'Update service discovery endpoints',
+      'Enable enhanced health checks',
+      'Monitor task registration status'
     ],
-    estimatedImpact: 'Prevents secondary outage. Auth success rate maintained above 99.5%.',
+    estimatedImpact: 'Zero cold-start delays during failover. Capacity ready within 4 minutes.',
     riskMitigation: 'Auto-scaling policies set to handle unexpected load. Circuit breakers active.'
   },
-  'Alert Customer Success to prepare communication for 23 enterprise clients with >$1M annual contracts': {
-    title: 'Enterprise Client Communication',
-    confidence: 96.3,
-    howItWorks: 'Proactive outreach to high-value enterprise clients reduces support ticket volume by 67% and maintains trust. Automated status page updates combined with personalized outreach.',
+  'Enable Route 53 Application Recovery Controller for coordinated multi-service failover': {
+    title: 'Route 53 ARC Orchestration',
+    confidence: 89.4,
+    howItWorks: 'AWS Route 53 Application Recovery Controller provides single-action failover across all application components. Ensures DNS, ALB, Aurora, and ElastiCache fail over in coordinated sequence with dependency-aware ordering.',
     resolutionPath: [
-      'Identify 23 enterprise clients by contract value',
-      'Generate personalized status updates',
-      'Trigger automated status page update',
-      'Initiate direct account manager outreach',
-      'Prepare compensation/SLA credit calculations',
-      'Schedule post-incident review calls'
+      'Activate Route 53 ARC recovery group',
+      'Verify readiness checks pass for all cells',
+      'Execute coordinated failover action',
+      'Monitor routing control state changes',
+      'Validate traffic shifting to DR region',
+      'Confirm all services healthy in target region'
     ],
-    estimatedImpact: 'Customer satisfaction maintained. Reduces escalations by 78%.',
-    riskMitigation: 'Communication templates pre-approved by legal. Escalation paths documented.'
+    estimatedImpact: 'Single-action failover reduces coordination time by 67%. RTO under 2 minutes.',
+    riskMitigation: 'Readiness checks prevent failover to unhealthy regions. Rollback available within 60s.'
   },
-  'Recommend extending database connection pool timeout from 30s to 120s during transition': {
-    title: 'Database Connection Optimization',
-    confidence: 92.1,
-    howItWorks: 'During failover, database connections experience temporary latency spikes. Extending timeout prevents premature connection drops and reduces retry storms that can overwhelm the system.',
+  'Extend Aurora connection timeout from 30s to 120s during Global Database promotion': {
+    title: 'Aurora Connection Pool Optimization',
+    confidence: 83.7,
+    howItWorks: 'During Aurora Global Database promotion, connections experience 45-90 second latency spikes. Extending pool timeout prevents connection drops and retry storms that can overwhelm newly promoted primary.',
     resolutionPath: [
-      'Increase connection pool timeout to 120s',
+      'Update RDS proxy connection timeout to 120s',
+      'Modify application connection pool settings',
       'Enable connection keep-alive optimization',
       'Activate query queuing for overflow',
       'Monitor connection pool utilization',
-      'Gradually restore normal timeouts post-recovery',
-      'Validate transaction completion rates'
+      'Restore normal timeouts after stabilization'
     ],
-    estimatedImpact: 'Prevents 23% of transaction failures during transition window.',
-    riskMitigation: 'Automatic timeout restoration after stability confirmed. Alerting for pool exhaustion.'
+    estimatedImpact: 'Prevents 23% of transaction failures during Global DB promotion window.',
+    riskMitigation: 'Automatic timeout restoration after stability confirmed. Pool exhaustion alerts active.'
   },
   'Implement adaptive rate limiting based on user behavior patterns': {
     title: 'Adaptive Rate Limiting',
@@ -347,7 +390,7 @@ const statusConfig: Record<ParticipantStatus, { text: string; icon: JSX.Element;
   joined: { text: 'Joined', icon: <CheckCircle className="h-2.5 w-2.5" />, color: 'bg-success/10 text-success border-success/30' },
 };
 
-export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
+export function IRCAlertDetail({ alert, onBack, onStatusUpdate }: IRCAlertDetailProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [simulationRunning, setSimulationRunning] = useState(false);
   const [simulationSteps, setSimulationSteps] = useState<SimulationStep[]>([]);
@@ -367,7 +410,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
   const [executionProgress, setExecutionProgress] = useState(0);
   const [impactMetrics, setImpactMetrics] = useState<any>(null);
   const [warRoomSimulationResults, setWarRoomSimulationResults] = useState<any>(null);
-  
+
   // Per-strategy simulation results
   const [perStrategyResults, setPerStrategyResults] = useState<Record<string, {
     simulated: boolean;
@@ -377,12 +420,56 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
     riskLevel: string;
   }>>({});
   const [simulatingStrategy, setSimulatingStrategy] = useState<string | null>(null);
-  const [appliedStrategy, setAppliedStrategy] = useState<string | null>(null);
-  const [finalizedStrategy, setFinalizedStrategy] = useState<{
-    strategy: string;
-    result: any;
+  const [appliedStrategies, setAppliedStrategies] = useState<string[]>([]);
+  const [finalizedStrategies, setFinalizedStrategies] = useState<{
+    strategies: string[];
+    combinedResult: any;
+    individualResults: Record<string, any>;
     appliedAt: Date;
   } | null>(null);
+
+  // Multi-strategy combined simulation
+  const [combinedSimulationResult, setCombinedSimulationResult] = useState<{
+    strategies: string[];
+    combinedSuccess: number;
+    combinedTime: string;
+    combinedRecovery: string;
+    overallRisk: string;
+    synergies: string[];
+  } | null>(null);
+  const [isSimulatingCombined, setIsSimulatingCombined] = useState(false);
+
+  // Activity Log state
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
+
+  // Resolution states
+  const [resolutionComplete, setResolutionComplete] = useState(alert.status === 'resolved');
+  const [alertStatus, setAlertStatus] = useState(alert.status);
+
+  // Report Dialog
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+
+  // Override data states
+  const [overrideData, setOverrideData] = useState<{
+    priorityEscalated: boolean;
+    strategyOverridden: boolean;
+    approvalBypassed: boolean;
+    resourcesAllocated: boolean;
+    slaAcknowledged: boolean;
+    overrideHistory: Array<{ type: string; justification: string; timestamp: Date }>;
+  }>({
+    priorityEscalated: false,
+    strategyOverridden: false,
+    approvalBypassed: false,
+    resourcesAllocated: false,
+    slaAcknowledged: false,
+    overrideHistory: []
+  });
+
+  // Override Dialog
+  const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
+  const [overrideType, setOverrideType] = useState<string>('priority');
+  const [overrideJustification, setOverrideJustification] = useState('');
 
   const {
     isOpen: warRoomOpen,
@@ -401,8 +488,42 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
     initiate: initiateWarRoom,
     ...warRoomActions
   } = useWarRoom();
+
+  // Add activity log entry helper
+  const addActivityLog = useCallback((
+    category: ActivityLogEntry['category'],
+    action: string,
+    details?: string,
+    actor: ActivityLogEntry['actor'] = 'system',
+    severity: ActivityLogEntry['severity'] = 'info'
+  ) => {
+    const entry: ActivityLogEntry = {
+      id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date(),
+      category,
+      action,
+      details,
+      actor,
+      severity
+    };
+    setActivityLog(prev => [...prev, entry]);
+  }, []);
+
+  // Initialize activity log on component mount
+  useEffect(() => {
+    addActivityLog('system', 'Alert Detail Opened', `Viewing incident ${alert.id}: ${alert.title}`, 'user', 'info');
+  }, [alert.id, alert.title, addActivityLog]);
+
+  // Log tab changes
+  useEffect(() => {
+    if (activeTab) {
+      addActivityLog(activeTab as ActivityLogEntry['category'], `Switched to ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} tab`, undefined, 'user', 'info');
+    }
+  }, [activeTab, addActivityLog]);
+
   const handleTakeAction = (action: string) => {
     setActionsTaken(prev => [...prev, action]);
+    addActivityLog('decision', `Action Initiated: ${action}`, undefined, 'user', 'success');
     toast.success(`Action initiated: ${action}`);
   };
 
@@ -417,55 +538,140 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
   const handleDeepDive = (strategy: string) => {
     setSelectedStrategy(strategy);
     setDeepDiveOpen(true);
+    addActivityLog('ai', `Viewed Strategy Deep Dive`, getStrategyDetails(strategy).title, 'user', 'info');
   };
 
   // Simulate a single strategy
   const handleSimulateSingleStrategy = async (strategy: string) => {
     if (simulatingStrategy) return;
-    
+
     setSimulatingStrategy(strategy);
-    toast.info(`Simulating: ${getStrategyDetails(strategy).title}`);
-    
+    const strategyTitle = getStrategyDetails(strategy).title;
+    addActivityLog('decision', `Simulation Started`, strategyTitle, 'helios', 'info');
+    toast.info(`Simulating: ${strategyTitle}`);
+
     // Simulate with delay
     await new Promise(resolve => setTimeout(resolve, 2000));
-    
+
     const details = aiStrategyDetails[strategy];
-    const confidence = details?.confidence || 90;
-    const times = ['6 min', '8 min', '10 min', '12 min', '15 min'];
-    const recoveries = ['95.2%', '96.7%', '97.3%', '98.1%', '94.5%'];
-    
+    const baseConfidence = details?.confidence || 85;
+    // Add realistic variance of ±3%
+    const variance = (Math.random() - 0.5) * 6;
+    const successProbability = Math.min(99.9, Math.max(60, baseConfidence + variance));
+
+    const times = ['5 min', '8 min', '12 min', '15 min', '18 min', '22 min'];
+    const recoveries = ['92.4%', '94.8%', '96.2%', '97.5%', '98.3%'];
+
+    const result = {
+      simulated: true,
+      successProbability: parseFloat(successProbability.toFixed(1)),
+      estimatedTime: times[Math.floor(Math.random() * times.length)],
+      recoveryRate: recoveries[Math.floor(Math.random() * recoveries.length)],
+      riskLevel: successProbability > 92 ? 'Low' : successProbability > 85 ? 'Medium' : 'High'
+    };
+
     setPerStrategyResults(prev => ({
       ...prev,
-      [strategy]: {
-        simulated: true,
-        successProbability: confidence,
-        estimatedTime: times[Math.floor(Math.random() * times.length)],
-        recoveryRate: recoveries[Math.floor(Math.random() * recoveries.length)],
-        riskLevel: confidence > 93 ? 'Low' : confidence > 88 ? 'Medium' : 'High'
-      }
+      [strategy]: result
     }));
-    
+
     setSimulatingStrategy(null);
-    toast.success(`Simulation complete for: ${getStrategyDetails(strategy).title}`);
+    addActivityLog('decision', `Simulation Complete`, `${strategyTitle} - Success Rate: ${result.successProbability}%`, 'helios', 'success');
+    toast.success(`Simulation complete for: ${strategyTitle}`);
   };
 
-  // Apply a strategy (only one can be applied at a time)
+  // Apply/unapply strategy (multiple can be applied)
   const handleApplyStrategy = (strategy: string) => {
-    if (appliedStrategy && appliedStrategy !== strategy) {
-      toast.error('Only one strategy can be applied at a time. Please unapply the current strategy first.');
-      return;
-    }
-    
-    if (appliedStrategy === strategy) {
+    if (appliedStrategies.includes(strategy)) {
       // Unapply
-      setAppliedStrategy(null);
+      setAppliedStrategies(prev => prev.filter(s => s !== strategy));
+      addActivityLog('decision', 'Strategy Unapplied', getStrategyDetails(strategy).title, 'user', 'warning');
       toast.info('Strategy unapplied');
     } else {
       // Apply
-      setAppliedStrategy(strategy);
+      setAppliedStrategies(prev => [...prev, strategy]);
       const details = getStrategyDetails(strategy);
+      addActivityLog('decision', 'Strategy Applied', details.title, 'user', 'success');
       toast.success(`Applied: ${details.title}`);
     }
+  };
+
+  // Simulate multiple selected strategies together
+  const handleSimulateMultipleStrategies = async () => {
+    const strategiesToSimulate = appliedStrategies.filter(s => !perStrategyResults[s]?.simulated);
+
+    if (appliedStrategies.length === 0) {
+      toast.error('Please apply at least one strategy to simulate');
+      return;
+    }
+
+    setIsSimulatingCombined(true);
+    addActivityLog('decision', 'Combined Simulation Started', `${appliedStrategies.length} strategies`, 'helios', 'info');
+    toast.info(`Simulating ${appliedStrategies.length} strategies together...`);
+
+    // Simulate each strategy individually first
+    for (const strategy of strategiesToSimulate) {
+      const details = aiStrategyDetails[strategy];
+      const confidence = details?.confidence || 90;
+      const times = ['6 min', '8 min', '10 min', '12 min', '15 min'];
+      const recoveries = ['95.2%', '96.7%', '97.3%', '98.1%', '94.5%'];
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      setPerStrategyResults(prev => ({
+        ...prev,
+        [strategy]: {
+          simulated: true,
+          successProbability: confidence,
+          estimatedTime: times[Math.floor(Math.random() * times.length)],
+          recoveryRate: recoveries[Math.floor(Math.random() * recoveries.length)],
+          riskLevel: confidence > 93 ? 'Low' : confidence > 88 ? 'Medium' : 'High'
+        }
+      }));
+    }
+
+    // Generate combined result
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const allResults = appliedStrategies.map(s => {
+      const existing = perStrategyResults[s];
+      if (existing) return existing;
+      const details = aiStrategyDetails[s];
+      return {
+        simulated: true,
+        successProbability: details?.confidence || 90,
+        estimatedTime: '10 min',
+        recoveryRate: '96%',
+        riskLevel: 'Medium'
+      };
+    });
+
+    // Calculate combined metrics with synergy bonus
+    const avgSuccess = allResults.reduce((acc, r) => acc + r.successProbability, 0) / allResults.length;
+    const synergyBonus = appliedStrategies.length > 1 ? Math.min(appliedStrategies.length * 1.2, 4) : 0;
+    const combinedSuccess = Math.min(avgSuccess + synergyBonus, 99.9);
+
+    const timeReduction = appliedStrategies.length > 1 ? 0.8 : 1;
+    const baseTimes = [6, 8, 10, 12, 15];
+    const avgTime = baseTimes[Math.floor(Math.random() * baseTimes.length)] * timeReduction;
+
+    const synergies: string[] = [];
+    if (appliedStrategies.length >= 2) synergies.push('Parallel execution reduces total time by 20%');
+    if (appliedStrategies.length >= 3) synergies.push('Multi-vector approach improves resilience');
+    if (avgSuccess > 92) synergies.push('High-confidence strategies amplify success rate');
+
+    setCombinedSimulationResult({
+      strategies: appliedStrategies,
+      combinedSuccess,
+      combinedTime: `${avgTime.toFixed(0)} min`,
+      combinedRecovery: `${(96 + Math.random() * 3).toFixed(1)}%`,
+      overallRisk: combinedSuccess > 95 ? 'Low' : combinedSuccess > 90 ? 'Medium' : 'High',
+      synergies
+    });
+
+    setIsSimulatingCombined(false);
+    addActivityLog('decision', 'Combined Simulation Complete', `Success: ${combinedSuccess.toFixed(1)}%`, 'helios', 'success');
+    toast.success('Combined simulation complete!');
   };
 
   const handleSimulateStrategies = async () => {
@@ -476,6 +682,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
 
     setSimulationRunning(true);
     setShowSimulationResults(false);
+    addActivityLog('decision', 'Multi-Strategy Simulation Started', `${selectedStrategies.length} strategies selected`, 'helios', 'info');
 
     const steps: SimulationStep[] = [
       { id: 1, name: 'Analyzing selected strategies', status: 'pending', duration: 1000 },
@@ -521,6 +728,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
 
     setSimulationRunning(false);
     setShowSimulationResults(true);
+    addActivityLog('decision', 'Multi-Strategy Simulation Complete', `Average success rate: ${avgConfidence.toFixed(1)}%`, 'helios', 'success');
     toast.success('Simulation complete!');
   };
 
@@ -528,6 +736,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
     setActiveTab('execution');
     setExecutionActive(true);
     setExecutionProgress(0);
+    addActivityLog('execution', 'Execution Pipeline Started', 'Initializing agent workflow', 'helios', 'info');
 
     // Initialize agents
     const agents: ExecutionAgent[] = [
@@ -555,6 +764,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
 
     for (let i = 0; i < agentTasks.length; i++) {
       const { agent, task, duration } = agentTasks[i];
+      addActivityLog('execution', `${agents[agent].name}`, task, 'helios', 'info');
 
       setExecutionAgents(prev => prev.map((a, idx) =>
         idx === agent
@@ -579,46 +789,80 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
 
     setExecutionActive(false);
     setExecutionProgress(100);
+    setResolutionComplete(true);
+    setAlertStatus('resolved');
 
-    // Generate impact metrics
-    setImpactMetrics({
+    // Generate impact metrics with realistic data
+    const metrics = {
       serviceRestoration: 97.3,
       transactionsRecovered: 94847,
       revenueProtected: '$2.1M',
       slaCompliance: 99.92,
       mttr: '14m 23s',
       affectedUsersResolved: 98.7
-    });
+    };
+    setImpactMetrics(metrics);
 
-    toast.success('Execution complete! View Impact tab for results.');
+    addActivityLog('execution', 'Execution Complete', 'All agents finished successfully', 'helios', 'success');
+    addActivityLog('impact', 'Resolution Complete', 'All systems restored to normal operation', 'system', 'success');
+    addActivityLog('system', 'Status Updated', 'Alert status changed from Active to Resolved', 'system', 'success');
+
+    // Notify parent of status change with metrics
+    if (onStatusUpdate) {
+      onStatusUpdate(alert.id, 'resolved', {
+        mttr: metrics.mttr,
+        revenueProtected: metrics.revenueProtected,
+        transactionsRecovered: metrics.transactionsRecovered,
+        serviceRestoration: metrics.serviceRestoration
+      });
+    }
+
+    toast.success('Execution complete! Incident resolved. View Impact tab for detailed results.');
   };
 
   const handleEndWarRoom = useCallback(() => {
-    // Save finalized strategy if one was applied
-    if (appliedStrategy) {
-      const result = perStrategyResults[appliedStrategy];
-      setFinalizedStrategy({
-        strategy: appliedStrategy,
-        result: result || {
-          successProbability: getStrategyDetails(appliedStrategy).confidence,
+    // Save finalized strategies if any were applied
+    if (appliedStrategies.length > 0) {
+      const individualResults: Record<string, any> = {};
+      appliedStrategies.forEach(s => {
+        individualResults[s] = perStrategyResults[s] || {
+          successProbability: getStrategyDetails(s).confidence,
           estimatedTime: '12 min',
           recoveryRate: '97.3%',
           riskLevel: 'Low'
+        };
+      });
+
+      setFinalizedStrategies({
+        strategies: appliedStrategies,
+        combinedResult: combinedSimulationResult || {
+          combinedSuccess: Object.values(individualResults).reduce((a, r) => a + r.successProbability, 0) / appliedStrategies.length,
+          combinedTime: '12 min',
+          combinedRecovery: '97.3%',
+          overallRisk: 'Low',
+          synergies: []
         },
+        individualResults,
         appliedAt: new Date()
       });
+
+      const titles = appliedStrategies.map(s => getStrategyDetails(s).title).join(', ');
+      addActivityLog('decision', 'Strategies Finalized', `${appliedStrategies.length} strategies: ${titles}`, 'user', 'success');
     }
-    
+
     // Save simulation results before ending war room
     if (showSimulationResults && simulationResults) {
       setWarRoomSimulationResults(simulationResults);
     }
+
+    addActivityLog('decision', 'War Room Ended', `Session duration: ${decisionTime}s`, 'user', 'info');
     warRoomActions.resetState();
     setActiveTab('decision');
     setPerStrategyResults({});
-    setAppliedStrategy(null);
-    toast.info("War Room session has ended. View your finalized strategy in the Decision tab.");
-  }, [warRoomActions, setActiveTab, showSimulationResults, simulationResults, appliedStrategy, perStrategyResults]);
+    setAppliedStrategies([]);
+    setCombinedSimulationResult(null);
+    toast.info("War Room session has ended. View your finalized strategies in the Decision tab.");
+  }, [warRoomActions, setActiveTab, showSimulationResults, simulationResults, appliedStrategies, perStrategyResults, combinedSimulationResult, decisionTime, addActivityLog]);
 
   const handleResetSimulation = useCallback(() => {
     setSelectedStrategies([]);
@@ -627,10 +871,12 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
     setSimulationSteps([]);
     setWarRoomSimulationResults(null);
     setPerStrategyResults({});
-    setAppliedStrategy(null);
-    setFinalizedStrategy(null);
+    setAppliedStrategies([]);
+    setFinalizedStrategies(null);
+    setCombinedSimulationResult(null);
+    addActivityLog('decision', 'Simulation Reset', 'All strategies cleared', 'user', 'warning');
     toast.info("Simulation has been reset.");
-  }, []);
+  }, [addActivityLog]);
 
   const handleReturnToDashboard = useCallback(() => {
     closeWarRoomDialog();
@@ -643,8 +889,9 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
 
 
   const handleInitiateWarRoom = useCallback(() => {
+    addActivityLog('decision', 'War Room Initiated', 'Assembling response team', 'user', 'info');
     initiateWarRoom();
-  }, [initiateWarRoom]);
+  }, [initiateWarRoom, addActivityLog]);
 
   const getStrategyDetails = (strategy: string) => {
     return aiStrategyDetails[strategy] || {
@@ -655,6 +902,148 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
       estimatedImpact: 'Expected positive impact on system recovery.',
       riskMitigation: 'Standard rollback procedures in place.'
     };
+  };
+
+  // Override handler with realistic data updates
+  const handleOverride = () => {
+    if (!overrideJustification.trim()) {
+      toast.error('Please provide a justification for the override');
+      return;
+    }
+
+    const overrideLabels: Record<string, string> = {
+      priority: 'Priority Override',
+      strategy: 'Strategy Override',
+      approval: 'Approval Chain Override',
+      resource: 'Resource Allocation Override',
+      sla: 'SLA Override'
+    };
+
+    // Add to override history
+    const newOverride = {
+      type: overrideType,
+      justification: overrideJustification,
+      timestamp: new Date()
+    };
+
+    setOverrideData(prev => ({
+      ...prev,
+      overrideHistory: [...prev.overrideHistory, newOverride],
+      ...(overrideType === 'priority' && { priorityEscalated: true }),
+      ...(overrideType === 'strategy' && { strategyOverridden: true }),
+      ...(overrideType === 'approval' && { approvalBypassed: true }),
+      ...(overrideType === 'resource' && { resourcesAllocated: true }),
+      ...(overrideType === 'sla' && { slaAcknowledged: true }),
+    }));
+
+    addActivityLog('override', overrideLabels[overrideType], overrideJustification, 'user', 'warning');
+
+    switch (overrideType) {
+      case 'priority':
+        addActivityLog('system', 'Priority Escalated', 'Incident priority changed from High to Critical', 'system', 'warning');
+        toast.success('Priority override applied - Incident escalated to Critical. All teams notified.');
+        break;
+      case 'strategy':
+        addActivityLog('system', 'Strategy Override Active', 'AI recommendations bypassed - Manual control enabled', 'system', 'warning');
+        setAppliedStrategies([]);
+        setFinalizedStrategies(null);
+        toast.success('Strategy override applied - Manual intervention mode activated. AI recommendations paused.');
+        break;
+      case 'approval':
+        addActivityLog('system', 'Approval Chain Bypassed', 'Emergency authorization granted by IRC Leader', 'system', 'warning');
+        toast.success('Approval chain bypassed - Emergency action authorized. Audit trail logged.');
+        break;
+      case 'resource':
+        addActivityLog('system', 'Resources Allocated', 'Additional capacity provisioned: +500% compute, +300% network', 'helios', 'info');
+        addActivityLog('execution', 'Scaling Initiated', 'HELIOS spinning up 2,400 additional containers across 3 regions', 'helios', 'success');
+        toast.success('Additional resources allocated - Auto-scaling initiated. Capacity increased by 500%.');
+        break;
+      case 'sla':
+        addActivityLog('system', 'SLA Override Documented', `Breach acknowledged: ${overrideJustification}`, 'system', 'warning');
+        toast.success('SLA override acknowledged - Documented for executive review. Customer Success notified.');
+        break;
+    }
+
+    setOverrideDialogOpen(false);
+    setOverrideJustification('');
+  };
+
+  // Generate incident report
+  const generateIncidentReport = () => {
+    const report = `
+================================================================================
+                         INCIDENT RESOLUTION REPORT
+================================================================================
+
+INCIDENT DETAILS
+--------------------------------------------------------------------------------
+Alert ID:        ${alert.id}
+Title:           ${alert.title}
+Severity:        ${alert.severity.toUpperCase()}
+Status:          ${alertStatus.toUpperCase()}
+Region:          ${alert.region}
+Timestamp:       ${new Date(alert.timestamp).toLocaleString()}
+
+AFFECTED SYSTEMS
+--------------------------------------------------------------------------------
+${alert.affectedSystems.map(s => `• ${s}`).join('\n')}
+
+BUSINESS IMPACT
+--------------------------------------------------------------------------------
+${alert.businessImpact}
+SLA Risk: ${alert.slaRisk}
+
+RESOLUTION SUMMARY
+--------------------------------------------------------------------------------
+Resolution Time:       ${impactMetrics?.mttr || 'N/A'}
+Service Restoration:   ${impactMetrics?.serviceRestoration || 'N/A'}%
+Transactions Recovered: ${impactMetrics?.transactionsRecovered?.toLocaleString() || 'N/A'}
+Revenue Protected:     ${impactMetrics?.revenueProtected || 'N/A'}
+SLA Compliance:        ${impactMetrics?.slaCompliance || 'N/A'}%
+
+STRATEGIES APPLIED
+--------------------------------------------------------------------------------
+${finalizedStrategies ? `
+Strategies Applied: ${finalizedStrategies.strategies.length}
+${finalizedStrategies.strategies.map((s, i) => `${i + 1}. ${getStrategyDetails(s).title}`).join('\n')}
+Applied At:   ${finalizedStrategies.appliedAt.toLocaleString()}
+Combined Success: ${finalizedStrategies.combinedResult?.combinedSuccess?.toFixed(1) || 'N/A'}%
+Overall Risk: ${finalizedStrategies.combinedResult?.overallRisk || 'N/A'}
+` : 'No finalized strategies recorded'}
+
+ACTIVITY LOG
+--------------------------------------------------------------------------------
+${activityLog.map(log => `[${log.timestamp.toLocaleTimeString()}] [${log.category.toUpperCase()}] ${log.action}${log.details ? ` - ${log.details}` : ''}`).join('\n')}
+
+================================================================================
+                    Generated by HELIOS Incident Response System
+                         ${new Date().toLocaleString()}
+================================================================================
+    `.trim();
+
+    return report;
+  };
+
+  const handleCopyReport = () => {
+    const report = generateIncidentReport();
+    navigator.clipboard.writeText(report);
+    addActivityLog('impact', 'Report Copied', 'Incident report copied to clipboard', 'user', 'info');
+    toast.success('Report copied to clipboard');
+  };
+
+  const handleDownloadReport = () => {
+    const report = generateIncidentReport();
+    const blob = new Blob([report], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `incident-report-${alert.id}-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    addActivityLog('impact', 'Report Downloaded', `File: incident-report-${alert.id}.txt`, 'user', 'info');
+    toast.success('Report downloaded');
   };
 
   return (
@@ -690,13 +1079,19 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
           <div className="flex items-center gap-2 mb-1">
             <Badge className={cn(
               "text-xs px-2 py-0.5",
-              alert.severity === 'critical' && 'bg-error/80 text-error-foreground',
-              alert.severity === 'high' && 'bg-muted/80 text-foreground',
-              alert.severity === 'medium' && 'bg-muted/60 text-foreground',
-              alert.severity === 'low' && 'bg-muted/40 text-muted-foreground'
+              alertStatus === 'resolved' && 'bg-emerald-500 text-white',
+              alertStatus !== 'resolved' && alert.severity === 'critical' && 'bg-error/80 text-error-foreground',
+              alertStatus !== 'resolved' && alert.severity === 'medium' && 'bg-muted/60 text-foreground',
+              alertStatus !== 'resolved' && alert.severity === 'low' && 'bg-muted/40 text-muted-foreground'
             )}>
-              {alert.severity.toUpperCase()}
+              {alertStatus === 'resolved' ? 'RESOLVED' : alert.severity.toUpperCase()}
             </Badge>
+            {alertStatus === 'resolved' && (
+              <Badge className="text-xs px-2 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Incident Closed
+              </Badge>
+            )}
             <span className="font-mono text-xs text-muted-foreground">{alert.id}</span>
           </div>
           <h1 className="text-xl font-semibold text-foreground/90">{alert.title}</h1>
@@ -726,25 +1121,34 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
             <p className="text-sm font-medium">{alert.affectedSystems.length} affected</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 p-3 rounded bg-error/5 border border-error/20">
-          <DollarSign className="h-5 w-5 text-error" />
+        <div className={cn(
+          "flex items-center gap-3 p-3 rounded border",
+          alertStatus === 'resolved' ? 'bg-emerald-950/20 border-emerald-500/20' : 'bg-error/5 border-error/20'
+        )}>
+          {alertStatus === 'resolved' ? (
+            <CheckCircle className="h-5 w-5 text-emerald-400" />
+          ) : (
+            <DollarSign className="h-5 w-5 text-error" />
+          )}
           <div>
-            <p className="text-xs text-muted-foreground">Impact</p>
-            <p className="text-sm font-medium text-error">{alert.businessImpact.split(' - ')[1] || alert.businessImpact}</p>
+            <p className="text-xs text-muted-foreground">{alertStatus === 'resolved' ? 'Status' : 'Impact'}</p>
+            <p className={cn("text-sm font-medium", alertStatus === 'resolved' ? 'text-emerald-400' : 'text-error')}>
+              {alertStatus === 'resolved' ? 'Resolved' : (alert.businessImpact.split(' - ')[1] || alert.businessImpact)}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
-        <TabsList className="grid grid-cols-5 h-auto gap-1.5 bg-muted/30 p-1 shrink-0">
+        <TabsList className="grid grid-cols-6 h-auto gap-1.5 bg-muted/30 p-1 shrink-0">
           <TabsTrigger value="overview" className="text-sm px-3 py-2">
             <FileText className="h-4 w-4 mr-1.5" />
             Overview
           </TabsTrigger>
           <TabsTrigger value="ai" className="text-sm px-3 py-2">
             <Brain className="h-4 w-4 mr-1.5" />
-            AI
+            Helios AI
           </TabsTrigger>
           <TabsTrigger value="decision" className="text-sm px-3 py-2">
             <Target className="h-4 w-4 mr-1.5" />
@@ -757,6 +1161,10 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
           <TabsTrigger value="impact" className="text-sm px-3 py-2">
             <TrendingUp className="h-4 w-4 mr-1.5" />
             Impact
+          </TabsTrigger>
+          <TabsTrigger value="activity" className="text-sm px-3 py-2">
+            <ScrollText className="h-4 w-4 mr-1.5" />
+            Activity Log
           </TabsTrigger>
         </TabsList>
 
@@ -892,13 +1300,19 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                 >
                   {warRoomActive ? <><CheckCircle className="h-4 w-4" /> War Room Live</> : (isAssembling ? <><Loader2 className="h-4 w-4 animate-spin" /> Assembling...</> : <><Users className="h-4 w-4" /> Initiate War Room</>)}
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => handleTakeAction('Approve Failover')} className="gap-1.5 h-9 text-sm px-4">
+                {/* <Button size="sm" variant="outline" onClick={() => handleTakeAction('Approve Failover')} className="gap-1.5 h-9 text-sm px-4">
                   <CheckCircle className="h-4 w-4" />
                   Approve
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => handleTakeAction('Override Prioritization')} className="h-9 text-sm px-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setOverrideDialogOpen(true)}
+                  className="h-9 text-sm px-4 gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                >
+                  <AlertOctagon className="h-4 w-4" />
                   Override
-                </Button>
+                </Button> */}
               </div>
 
               {warRoomActive && (
@@ -913,8 +1327,41 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                 </div>
               )}
 
-              {/* Finalized Strategy Display */}
-              {finalizedStrategy && !warRoomActive && (
+              {/* Active Override Status */}
+              {overrideData.overrideHistory.length > 0 && (
+                <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-950/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertOctagon className="h-4 w-4 text-amber-400" />
+                    <span className="text-sm font-semibold text-amber-400">Active Overrides ({overrideData.overrideHistory.length})</span>
+                  </div>
+                  <div className="space-y-2">
+                    {overrideData.overrideHistory.map((override, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-xs">
+                        <Badge variant="outline" className="text-[10px] px-1.5 shrink-0 bg-amber-500/10 text-amber-400 border-amber-500/30 capitalize">
+                          {override.type}
+                        </Badge>
+                        <span className="text-muted-foreground flex-1">{override.justification}</span>
+                        <span className="text-muted-foreground/60 shrink-0">
+                          {override.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {overrideData.resourcesAllocated && (
+                    <div className="mt-2 pt-2 border-t border-amber-500/20">
+                      <div className="flex items-center gap-4 text-xs">
+                        <span className="text-muted-foreground">Resources:</span>
+                        <Badge className="bg-emerald-500/20 text-emerald-400 text-[10px]">+500% Compute</Badge>
+                        <Badge className="bg-emerald-500/20 text-emerald-400 text-[10px]">+300% Network</Badge>
+                        <Badge className="bg-emerald-500/20 text-emerald-400 text-[10px]">+2,400 Containers</Badge>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Finalized Strategies Display */}
+              {finalizedStrategies && !warRoomActive && (
                 <Card className="border-emerald-500/40 bg-gradient-to-br from-emerald-950/40 to-emerald-950/10">
                   <CardContent className="p-4 space-y-4">
                     <div className="flex items-center justify-between">
@@ -923,8 +1370,10 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                           <CheckCircle className="h-5 w-5 text-emerald-400" />
                         </div>
                         <div>
-                          <span className="text-sm font-semibold text-emerald-400">Finalized Strategy</span>
-                          <p className="text-xs text-muted-foreground">Applied at {finalizedStrategy.appliedAt.toLocaleTimeString()}</p>
+                          <span className="text-sm font-semibold text-emerald-400">
+                            {finalizedStrategies.strategies.length > 1 ? `${finalizedStrategies.strategies.length} Finalized Strategies` : 'Finalized Strategy'}
+                          </span>
+                          <p className="text-xs text-muted-foreground">Applied at {finalizedStrategies.appliedAt.toLocaleTimeString()}</p>
                         </div>
                       </div>
                       <Button
@@ -937,49 +1386,99 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                         Clear
                       </Button>
                     </div>
-                    
-                    <div className="p-4 rounded-lg bg-background/50 border border-emerald-500/20">
-                      <h4 className="font-semibold text-foreground mb-2">{getStrategyDetails(finalizedStrategy.strategy).title}</h4>
-                      <p className="text-sm text-muted-foreground mb-4">{finalizedStrategy.strategy}</p>
-                      
-                      <div className="grid grid-cols-4 gap-3">
-                        <div className="text-center p-3 rounded-lg bg-emerald-950/30 border border-emerald-500/20">
-                          <p className="text-xl font-bold text-emerald-400">{finalizedStrategy.result.successProbability?.toFixed(0) || getStrategyDetails(finalizedStrategy.strategy).confidence}%</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">Success Rate</p>
+
+                    {/* Combined Results Summary */}
+                    {finalizedStrategies.strategies.length > 1 && finalizedStrategies.combinedResult && (
+                      <div className="p-4 rounded-lg bg-gradient-to-r from-emerald-950/50 to-primary/10 border border-emerald-500/30">
+                        <h5 className="text-xs font-semibold text-emerald-400 mb-3 flex items-center gap-2">
+                          <Zap className="h-3.5 w-3.5" />
+                          Combined Strategy Results
+                        </h5>
+                        <div className="grid grid-cols-4 gap-3">
+                          <div className="text-center p-3 rounded-lg bg-background/50 border border-emerald-500/20">
+                            <p className="text-xl font-bold text-emerald-400">{finalizedStrategies.combinedResult.combinedSuccess?.toFixed(1)}%</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">Combined Success</p>
+                          </div>
+                          <div className="text-center p-3 rounded-lg bg-background/50 border border-emerald-500/20">
+                            <p className="text-xl font-bold text-primary">{finalizedStrategies.combinedResult.combinedRecovery}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">Recovery Rate</p>
+                          </div>
+                          <div className="text-center p-3 rounded-lg bg-background/50 border border-emerald-500/20">
+                            <p className="text-xl font-bold">{finalizedStrategies.combinedResult.combinedTime}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">Est. Time</p>
+                          </div>
+                          <div className="text-center p-3 rounded-lg bg-background/50 border border-emerald-500/20">
+                            <Badge className={cn(
+                              "text-xs",
+                              finalizedStrategies.combinedResult.overallRisk === 'Low' && 'bg-emerald-500/20 text-emerald-400',
+                              finalizedStrategies.combinedResult.overallRisk === 'Medium' && 'bg-amber-500/20 text-amber-400',
+                              finalizedStrategies.combinedResult.overallRisk === 'High' && 'bg-error/20 text-error'
+                            )}>
+                              {finalizedStrategies.combinedResult.overallRisk}
+                            </Badge>
+                            <p className="text-[10px] text-muted-foreground mt-1.5">Risk Level</p>
+                          </div>
                         </div>
-                        <div className="text-center p-3 rounded-lg bg-emerald-950/30 border border-emerald-500/20">
-                          <p className="text-xl font-bold text-primary">{finalizedStrategy.result.recoveryRate || '97.3%'}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">Recovery</p>
-                        </div>
-                        <div className="text-center p-3 rounded-lg bg-emerald-950/30 border border-emerald-500/20">
-                          <p className="text-xl font-bold">{finalizedStrategy.result.estimatedTime || '12 min'}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">Est. Time</p>
-                        </div>
-                        <div className="text-center p-3 rounded-lg bg-emerald-950/30 border border-emerald-500/20">
-                          <Badge className={cn(
-                            "text-xs",
-                            (finalizedStrategy.result.riskLevel || 'Low') === 'Low' && 'bg-emerald-500/20 text-emerald-400',
-                            (finalizedStrategy.result.riskLevel || 'Low') === 'Medium' && 'bg-amber-500/20 text-amber-400',
-                            (finalizedStrategy.result.riskLevel || 'Low') === 'High' && 'bg-error/20 text-error'
-                          )}>
-                            {finalizedStrategy.result.riskLevel || 'Low'}
-                          </Badge>
-                          <p className="text-[10px] text-muted-foreground mt-1.5">Risk Level</p>
-                        </div>
+                        {finalizedStrategies.combinedResult.synergies?.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-emerald-500/20">
+                            <p className="text-[10px] font-medium text-muted-foreground mb-2">Synergy Benefits:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {finalizedStrategies.combinedResult.synergies.map((s: string, i: number) => (
+                                <Badge key={i} variant="outline" className="text-[10px] bg-emerald-950/30 text-emerald-400 border-emerald-500/30">
+                                  {s}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
+                    )}
+
+                    {/* Individual Strategy Cards */}
+                    <div className="space-y-3">
+                      {finalizedStrategies.strategies.map((strategy, idx) => {
+                        const details = getStrategyDetails(strategy);
+                        const result = finalizedStrategies.individualResults[strategy];
+                        return (
+                          <div key={idx} className="p-4 rounded-lg bg-background/50 border border-emerald-500/20">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Badge className="bg-emerald-500/20 text-emerald-400 text-[10px]">{idx + 1}</Badge>
+                                  <h4 className="font-semibold text-foreground text-sm">{details.title}</h4>
+                                </div>
+                                <p className="text-xs text-muted-foreground line-clamp-2">{strategy}</p>
+                              </div>
+                              {result && (
+                                <div className="flex items-center gap-3 text-xs">
+                                  <span className="text-success font-medium">{result.successProbability?.toFixed(0)}%</span>
+                                  <Badge className={cn(
+                                    "text-[10px]",
+                                    result.riskLevel === 'Low' && 'bg-emerald-500/20 text-emerald-400',
+                                    result.riskLevel === 'Medium' && 'bg-amber-500/20 text-amber-400',
+                                    result.riskLevel === 'High' && 'bg-error/20 text-error'
+                                  )}>
+                                    {result.riskLevel}
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    
+
                     <Button onClick={handleExecuteStrategies} className="w-full gap-2 h-10 bg-emerald-600 hover:bg-emerald-700 text-white">
                       <Zap className="h-4 w-4" />
-                      Execute Finalized Strategy
+                      Execute {finalizedStrategies.strategies.length > 1 ? `${finalizedStrategies.strategies.length} Strategies` : 'Strategy'}
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Legacy War Room Simulation Results (fallback if no finalized strategy) */}
-              {warRoomSimulationResults && !warRoomActive && !finalizedStrategy && (
+              {/* Legacy War Room Simulation Results (fallback if no finalized strategies) */}
+              {warRoomSimulationResults && !warRoomActive && !finalizedStrategies && (
                 <Card className="border-success/20 bg-success/5">
                   <CardContent className="p-3 space-y-2">
                     <div className="flex items-center justify-between">
@@ -1117,19 +1616,23 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
 
                   {/* Execution Complete */}
                   {executionProgress === 100 && (
-                    <div className="flex items-center justify-between p-3 rounded bg-success/5 border border-success/20">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-success" />
-                        <span className="text-sm font-medium text-success">Execution Complete</span>
+                    <div className="p-4 rounded-lg border border-success/30 bg-gradient-to-r from-success/10 to-transparent">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
+                          <CheckCircle className="h-5 w-5 text-success" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-success">Execution Complete</p>
+                          <p className="text-sm text-muted-foreground">All agents have finished their tasks successfully</p>
+                        </div>
                       </div>
                       <Button
+                        className="mt-4 w-full gap-2"
                         onClick={() => setActiveTab('impact')}
-                        variant="outline"
-                        size="sm"
-                        className="h-8 px-3 text-xs gap-1.5"
                       >
-                        <BarChart3 className="h-3.5 w-3.5" />
-                        View Impact
+                        <TrendingUp className="h-4 w-4" />
+                        View Impact Results
+                        <ArrowRight className="h-4 w-4" />
                       </Button>
                     </div>
                   )}
@@ -1143,60 +1646,62 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
         <TabsContent value="impact" className="mt-3 flex-1 min-h-0 overflow-hidden">
           <Card className="h-full border-border/30">
             <CardHeader className="py-3">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground/90">
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                Resolution Impact Analysis
+              <CardTitle className="flex items-center justify-between text-base font-semibold text-foreground/90">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  Resolution Impact Analysis
+                </div>
+                {resolutionComplete && (
+                  <Button
+                    size="sm"
+                    onClick={() => setReportDialogOpen(true)}
+                    className="gap-1.5 h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    Generate Report
+                  </Button>
+                )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-0 h-[calc(100%-60px)]">
+            <CardContent className="pt-0">
               {!impactMetrics ? (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                  <BarChart3 className="h-10 w-10 mb-3 opacity-30" />
+                <div className="text-center py-8 text-muted-foreground">
+                  <BarChart3 className="h-10 w-10 mx-auto mb-3 opacity-30" />
                   <p className="text-sm">No impact data available</p>
-                  <p className="text-xs">Execute strategies to see impact analysis</p>
+                  <p className="text-xs">Execute strategies to see resolution impact</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-12 gap-4 h-full">
-                  {/* Left Column - Key Metrics */}
-                  <div className="col-span-8 flex flex-col gap-4">
-                    {/* Primary Metrics Row */}
+                <div className="grid grid-cols-12 gap-4">
+                  {/* Left Column - Metrics */}
+                  <div className="col-span-8 space-y-4">
+                    {/* Key Metrics Grid */}
                     <div className="grid grid-cols-3 gap-3">
-                      <div className="p-4 rounded-lg bg-gradient-to-br from-success/10 to-success/5 border border-success/20">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-success/80">Service Restoration</span>
-                          <CheckCircle className="h-4 w-4 text-success" />
-                        </div>
+                      <div className="p-4 rounded-lg border border-success/20 bg-success/5 text-center">
                         <p className="text-3xl font-bold text-success">{impactMetrics.serviceRestoration}%</p>
+                        <p className="text-xs text-muted-foreground mt-1">Service Restoration</p>
                       </div>
-                      <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-primary/80">Revenue Protected</span>
-                          <DollarSign className="h-4 w-4 text-primary" />
-                        </div>
-                        <p className="text-3xl font-bold text-primary">{impactMetrics.revenueProtected}</p>
+                      <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 text-center">
+                        <p className="text-3xl font-bold text-primary">{impactMetrics.transactionsRecovered.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Transactions Recovered</p>
                       </div>
-                      <div className="p-4 rounded-lg bg-gradient-to-br from-success/10 to-success/5 border border-success/20">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-success/80">SLA Compliance</span>
-                          <Shield className="h-4 w-4 text-success" />
-                        </div>
-                        <p className="text-3xl font-bold text-success">{impactMetrics.slaCompliance}%</p>
+                      <div className="p-4 rounded-lg border border-emerald-500/20 bg-emerald-950/20 text-center">
+                        <p className="text-3xl font-bold text-emerald-400">{impactMetrics.revenueProtected}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Revenue Protected</p>
                       </div>
                     </div>
 
-                    {/* Secondary Metrics Row */}
                     <div className="grid grid-cols-3 gap-3">
-                      <div className="p-3 rounded-lg border border-border/30 bg-muted/5">
-                        <p className="text-xs text-muted-foreground mb-1">Transactions Recovered</p>
-                        <p className="text-xl font-bold">{impactMetrics.transactionsRecovered.toLocaleString()}</p>
+                      <div className="p-3 rounded-lg border border-border/30 bg-muted/5 text-center">
+                        <p className="text-xl font-bold">{impactMetrics.slaCompliance}%</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">SLA Compliance</p>
                       </div>
-                      <div className="p-3 rounded-lg border border-border/30 bg-muted/5">
-                        <p className="text-xs text-muted-foreground mb-1">Mean Time to Resolve</p>
+                      <div className="p-3 rounded-lg border border-border/30 bg-muted/5 text-center">
                         <p className="text-xl font-bold">{impactMetrics.mttr}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Mean Time to Resolve</p>
                       </div>
-                      <div className="p-3 rounded-lg border border-border/30 bg-muted/5">
-                        <p className="text-xs text-muted-foreground mb-1">Users Resolved</p>
+                      <div className="p-3 rounded-lg border border-border/30 bg-muted/5 text-center">
                         <p className="text-xl font-bold">{impactMetrics.affectedUsersResolved}%</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Users Recovered</p>
                       </div>
                     </div>
 
@@ -1229,13 +1734,27 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                           <p className="text-xs text-muted-foreground">96.7% routed to healthy region</p>
                         </div>
                       </div>
-                      <div className="p-3 rounded-lg border border-border/30 bg-muted/5 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
+                      <div className={cn(
+                        "p-3 rounded-lg border flex items-center gap-3",
+                        resolutionComplete
+                          ? "border-success/20 bg-success/5"
+                          : "border-border/30 bg-muted/5"
+                      )}>
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                          resolutionComplete ? "bg-success/20" : "bg-muted"
+                        )}>
+                          {resolutionComplete ? (
+                            <CheckCircle className="h-4 w-4 text-success" />
+                          ) : (
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                          )}
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-medium">DNS Propagation</p>
-                          <p className="text-xs text-muted-foreground">3.3% may need cache clear</p>
+                          <p className="text-xs text-muted-foreground">
+                            {resolutionComplete ? 'Complete - All regions updated' : '3.3% may need cache clear'}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -1294,6 +1813,73 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Activity Log Tab */}
+        <TabsContent value="activity" className="mt-3 flex-1 min-h-0 overflow-hidden">
+          <Card className="h-full border-border/30">
+            <CardHeader className="py-3">
+              <CardTitle className="flex items-center justify-between text-base font-semibold text-foreground/90">
+                <div className="flex items-center gap-2">
+                  <ScrollText className="h-4 w-4 text-muted-foreground" />
+                  Activity Log
+                </div>
+                <Badge variant="outline" className="text-xs px-2 py-0.5">
+                  {activityLog.length} entries
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 h-[calc(100%-60px)]">
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-2">
+                  {activityLog.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <ScrollText className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">No activity logged yet</p>
+                      <p className="text-xs">Actions will be recorded as you interact with the incident</p>
+                    </div>
+                  ) : (
+                    [...activityLog].reverse().map((entry) => (
+                      <div
+                        key={entry.id}
+                        className={cn(
+                          "flex items-start gap-3 p-3 rounded-lg border transition-all",
+                          entry.severity === 'error' && "border-red-500/30 bg-red-950/20",
+                          entry.severity === 'warning' && "border-amber-500/30 bg-amber-950/20",
+                          entry.severity === 'success' && "border-emerald-500/30 bg-emerald-950/20",
+                          entry.severity === 'info' && "border-border/30 bg-muted/10"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-7 h-7 rounded-full flex items-center justify-center shrink-0",
+                          categoryColors[entry.category]
+                        )}>
+                          {categoryIcons[entry.category]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium">{entry.action}</span>
+                            <Badge variant="outline" className={cn("text-[10px] px-1.5 capitalize", categoryColors[entry.category])}>
+                              {entry.category}
+                            </Badge>
+                            <Badge variant="outline" className="text-[10px] px-1.5">
+                              {entry.actor}
+                            </Badge>
+                          </div>
+                          {entry.details && (
+                            <p className="text-xs text-muted-foreground">{entry.details}</p>
+                          )}
+                          <p className="text-[10px] text-muted-foreground/60 mt-1">
+                            {entry.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1361,6 +1947,119 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
               })()}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Override Dialog */}
+      <Dialog open={overrideDialogOpen} onOpenChange={setOverrideDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertOctagon className="h-5 w-5 text-amber-400" />
+              Override Actions
+            </DialogTitle>
+            <DialogDescription>
+              Apply an override action. All overrides are logged for audit purposes.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <Label>Override Type</Label>
+              <RadioGroup value={overrideType} onValueChange={setOverrideType} className="space-y-2">
+                <div className="flex items-center space-x-3 p-3 rounded-lg border border-border/30 hover:bg-muted/10 cursor-pointer">
+                  <RadioGroupItem value="priority" id="priority" />
+                  <Label htmlFor="priority" className="flex-1 cursor-pointer">
+                    <span className="font-medium">Priority Override</span>
+                    <p className="text-xs text-muted-foreground">Escalate or de-escalate incident priority</p>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-3 p-3 rounded-lg border border-border/30 hover:bg-muted/10 cursor-pointer">
+                  <RadioGroupItem value="strategy" id="strategy" />
+                  <Label htmlFor="strategy" className="flex-1 cursor-pointer">
+                    <span className="font-medium">Strategy Override</span>
+                    <p className="text-xs text-muted-foreground">Bypass AI recommendations with manual strategy</p>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-3 p-3 rounded-lg border border-border/30 hover:bg-muted/10 cursor-pointer">
+                  <RadioGroupItem value="approval" id="approval" />
+                  <Label htmlFor="approval" className="flex-1 cursor-pointer">
+                    <span className="font-medium">Approval Chain Override</span>
+                    <p className="text-xs text-muted-foreground">Skip approval chain for emergency actions</p>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-3 p-3 rounded-lg border border-border/30 hover:bg-muted/10 cursor-pointer">
+                  <RadioGroupItem value="resource" id="resource" />
+                  <Label htmlFor="resource" className="flex-1 cursor-pointer">
+                    <span className="font-medium">Resource Allocation Override</span>
+                    <p className="text-xs text-muted-foreground">Force additional resources or capacity</p>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-3 p-3 rounded-lg border border-border/30 hover:bg-muted/10 cursor-pointer">
+                  <RadioGroupItem value="sla" id="sla" />
+                  <Label htmlFor="sla" className="flex-1 cursor-pointer">
+                    <span className="font-medium">SLA Override</span>
+                    <p className="text-xs text-muted-foreground">Acknowledge SLA breach with documented reason</p>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Justification (Required)</Label>
+              <Textarea
+                placeholder="Provide a detailed justification for this override..."
+                value={overrideJustification}
+                onChange={(e) => setOverrideJustification(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOverrideDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleOverride} className="gap-2 bg-amber-600 hover:bg-amber-700">
+              <AlertOctagon className="h-4 w-4" />
+              Apply Override
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report Dialog */}
+      <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-emerald-400" />
+              Incident Resolution Report
+            </DialogTitle>
+            <DialogDescription>
+              Complete incident report generated by HELIOS
+            </DialogDescription>
+          </DialogHeader>
+
+          <ScrollArea className="h-[500px] pr-4">
+            <pre className="text-xs font-mono whitespace-pre-wrap bg-muted/30 p-4 rounded-lg border border-border/30">
+              {generateIncidentReport()}
+            </pre>
+          </ScrollArea>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReportDialogOpen(false)}>
+              Close
+            </Button>
+            <Button variant="outline" onClick={handleCopyReport} className="gap-2">
+              <Copy className="h-4 w-4" />
+              Copy to Clipboard
+            </Button>
+            <Button onClick={handleDownloadReport} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+              <Download className="h-4 w-4" />
+              Download Report
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1458,25 +2157,91 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                     <Target className="h-4 w-4 text-primary" />
                     AI Strategies - Simulate & Apply
                   </h3>
-                  {warRoomActive && appliedStrategy && (
+                  {warRoomActive && appliedStrategies.length > 0 && (
                     <Badge className="bg-emerald-500 text-white text-xs px-3 py-1">
                       <CheckCircle className="h-3 w-3 mr-1.5" />
-                      1 Strategy Applied
+                      {appliedStrategies.length} {appliedStrategies.length > 1 ? 'Strategies' : 'Strategy'} Applied
                     </Badge>
                   )}
                 </div>
 
                 {warRoomActive ? (
                   <div className="space-y-3">
+                    {/* Multi-Strategy Simulation Button */}
+                    {appliedStrategies.length > 0 && (
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/30">
+                        <Button
+                          size="sm"
+                          onClick={handleSimulateMultipleStrategies}
+                          disabled={isSimulatingCombined || appliedStrategies.length === 0}
+                          className="gap-2 h-9"
+                        >
+                          {isSimulatingCombined ? (
+                            <><Loader2 className="h-4 w-4 animate-spin" />Simulating Combined...</>
+                          ) : (
+                            <><Play className="h-4 w-4" />Simulate {appliedStrategies.length} Selected Together</>
+                          )}
+                        </Button>
+                        <span className="text-xs text-muted-foreground">
+                          Run combined simulation to see synergy effects
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Combined Simulation Results */}
+                    {combinedSimulationResult && (
+                      <div className="p-4 rounded-lg bg-gradient-to-r from-primary/10 to-emerald-950/20 border border-primary/30">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Zap className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-semibold">Combined Strategy Results</span>
+                          <Badge variant="outline" className="ml-auto text-[10px]">{combinedSimulationResult.strategies.length} strategies</Badge>
+                        </div>
+                        <div className="grid grid-cols-4 gap-3 mb-3">
+                          <div className="text-center p-3 rounded-lg bg-background/50 border border-success/20">
+                            <p className="text-2xl font-bold text-success">{combinedSimulationResult.combinedSuccess.toFixed(1)}%</p>
+                            <p className="text-[10px] text-muted-foreground">Combined Success</p>
+                          </div>
+                          <div className="text-center p-3 rounded-lg bg-background/50 border border-primary/20">
+                            <p className="text-2xl font-bold text-primary">{combinedSimulationResult.combinedRecovery}</p>
+                            <p className="text-[10px] text-muted-foreground">Recovery</p>
+                          </div>
+                          <div className="text-center p-3 rounded-lg bg-background/50 border border-border/30">
+                            <p className="text-2xl font-bold">{combinedSimulationResult.combinedTime}</p>
+                            <p className="text-[10px] text-muted-foreground">Est. Time</p>
+                          </div>
+                          <div className="text-center p-3 rounded-lg bg-background/50 border border-border/30">
+                            <Badge className={cn(
+                              "text-xs",
+                              combinedSimulationResult.overallRisk === 'Low' && 'bg-success/20 text-success',
+                              combinedSimulationResult.overallRisk === 'Medium' && 'bg-amber-500/20 text-amber-400',
+                              combinedSimulationResult.overallRisk === 'High' && 'bg-error/20 text-error'
+                            )}>
+                              {combinedSimulationResult.overallRisk}
+                            </Badge>
+                            <p className="text-[10px] text-muted-foreground mt-1">Risk</p>
+                          </div>
+                        </div>
+                        {combinedSimulationResult.synergies.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {combinedSimulationResult.synergies.map((s, i) => (
+                              <Badge key={i} variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
+                                ✓ {s}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {/* All Strategy Cards - Show ALL recommendations */}
-                    <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto pr-1">
+                    <div className="grid grid-cols-1 gap-3 max-h-[350px] overflow-y-auto pr-1">
                       {alert.details.aiRecommendations.map((rec, i) => {
                         const details = getStrategyDetails(rec);
                         const strategyResult = perStrategyResults[rec];
                         const isSimulated = strategyResult?.simulated;
-                        const isApplied = appliedStrategy === rec;
+                        const isApplied = appliedStrategies.includes(rec);
                         const isSimulating = simulatingStrategy === rec;
-                        
+
                         return (
                           <div key={i} className={cn(
                             "p-4 rounded-lg border transition-all",
@@ -1498,7 +2263,7 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                                   )}
                                 </div>
                                 <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{rec}</p>
-                                
+
                                 {/* Simulation Results for this strategy */}
                                 {isSimulated && strategyResult && (
                                   <div className="grid grid-cols-4 gap-2 p-3 rounded-lg bg-background/50 border border-border/20 mb-3">
@@ -1528,14 +2293,14 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                                   </div>
                                 )}
                               </div>
-                              
+
                               {/* Action Buttons */}
                               <div className="flex flex-col gap-2 shrink-0">
                                 <Button
                                   size="sm"
                                   variant={isSimulated ? "outline" : "default"}
                                   onClick={(e) => { e.stopPropagation(); handleSimulateSingleStrategy(rec); }}
-                                  disabled={isSimulating || !!simulatingStrategy}
+                                  disabled={isSimulating || !!simulatingStrategy || isSimulatingCombined}
                                   className="h-8 px-3 text-xs gap-1.5 w-24"
                                 >
                                   {isSimulating ? (
@@ -1546,21 +2311,19 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                                     <><Play className="h-3 w-3" />Simulate</>
                                   )}
                                 </Button>
-                                
+
                                 {isSimulated && (
                                   <Button
                                     size="sm"
                                     variant={isApplied ? "destructive" : "outline"}
                                     onClick={(e) => { e.stopPropagation(); handleApplyStrategy(rec); }}
-                                    disabled={appliedStrategy !== null && !isApplied}
                                     className={cn(
                                       "h-8 px-3 text-xs gap-1.5 w-24",
-                                      isApplied && "bg-emerald-600 hover:bg-emerald-700 text-white",
-                                      !isApplied && appliedStrategy && "opacity-50"
+                                      isApplied && "bg-emerald-600 hover:bg-emerald-700 text-white"
                                     )}
                                   >
                                     {isApplied ? (
-                                      <><X className="h-3 w-3" />Unapply</>
+                                      <><X className="h-3 w-3" />Remove</>
                                     ) : (
                                       <><CheckCircle className="h-3 w-3" />Apply</>
                                     )}
@@ -1573,15 +2336,29 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
                       })}
                     </div>
 
-                    {/* Applied Strategy Summary */}
-                    {appliedStrategy && (
+                    {/* Applied Strategies Summary */}
+                    {appliedStrategies.length > 0 && (
                       <div className="p-4 rounded-lg border-2 border-emerald-500/50 bg-gradient-to-r from-emerald-950/40 to-transparent">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CheckCircle className="h-5 w-5 text-emerald-400" />
-                          <h4 className="text-sm font-semibold text-emerald-400">Applied Strategy</h4>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-5 w-5 text-emerald-400" />
+                            <h4 className="text-sm font-semibold text-emerald-400">
+                              {appliedStrategies.length} {appliedStrategies.length > 1 ? 'Strategies' : 'Strategy'} Selected
+                            </h4>
+                          </div>
                         </div>
-                        <p className="text-sm font-medium text-foreground mb-1">{getStrategyDetails(appliedStrategy).title}</p>
-                        <p className="text-xs text-muted-foreground">This strategy will be finalized when you end the War Room session.</p>
+                        <div className="space-y-1 mb-3">
+                          {appliedStrategies.map((s, i) => (
+                            <p key={i} className="text-xs text-foreground/80">
+                              {i + 1}. {getStrategyDetails(s).title}
+                            </p>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {combinedSimulationResult
+                            ? 'Combined simulation complete. End War Room to finalize.'
+                            : 'Run combined simulation or end War Room to finalize.'}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -1636,11 +2413,11 @@ export function IRCAlertDetail({ alert, onBack }: IRCAlertDetailProps) {
 
           {/* Footer */}
           <div className="px-6 py-4 border-t border-border/30 bg-muted/5 shrink-0">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
+            <div className="flex flex-col items-center gap-3">
+              <p className="text-xs text-muted-foreground text-center">
                 {warRoomActive ? 'War room session active. All participants can collaborate in real-time.' : 'Assemble the bridge to start coordinating incident response.'}
               </p>
-              <Button variant="destructive" size="sm" onClick={handleEndWarRoom} className="px-6">
+              <Button variant="destructive" size="sm" onClick={handleEndWarRoom} className="px-8">
                 End War Room
               </Button>
             </div>
